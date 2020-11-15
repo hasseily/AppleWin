@@ -109,6 +109,7 @@
     <ClInclude Include="source\Tfe\Tfearch.h" />
     <ClInclude Include="source\Tfe\Tfesupp.h" />
     <ClInclude Include="source\Tfe\Uilib.h" />
+    <ClInclude Include="source\TilesetCreator.h" />
     <ClInclude Include="source\Video.h" />
     <ClInclude Include="source\YamlHelper.h" />
     <ClInclude Include="source\z80emu.h" />
@@ -215,6 +216,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release NoDX|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="source\TilesetCreator.cpp" />
     <ClCompile Include="source\Video.cpp" />
     <ClCompile Include="source\YamlHelper.cpp" />
     <ClCompile Include="source\z80emu.cpp" />
@@ -238,6 +240,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="packages.config" />
     <None Include="resource\Apple2.rom" />
     <None Include="resource\Apple2e.rom" />
     <None Include="resource\Apple2e_Enhanced.rom" />
@@ -449,7 +452,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>htmlhelp.lib;comctl32.lib;winmm.lib;dsound.lib;dxguid.lib;version.lib;strmiids.lib;dinput8.lib;user32.lib;gdi32.lib;advapi32.lib;shell32.lib;comdlg32.lib;ole32.lib;wsock32.lib;ddraw.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>htmlhelp.lib;comctl32.lib;winmm.lib;dsound.lib;dxguid.lib;version.lib;strmiids.lib;dinput8.lib;user32.lib;gdi32.lib;advapi32.lib;shell32.lib;comdlg32.lib;ole32.lib;wsock32.lib;ddraw.lib;libpng.lib;libpngd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalManifestDependencies>"type='Win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'"</AdditionalManifestDependencies>
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
@@ -496,5 +499,18 @@
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="packages\libpng.redist.1.6.28.1\build\native\libpng.redist.targets" Condition="Exists('packages\libpng.redist.1.6.28.1\build\native\libpng.redist.targets')" />
+    <Import Project="packages\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.targets" Condition="Exists('packages\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.targets')" />
+    <Import Project="packages\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.targets" Condition="Exists('packages\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.targets')" />
+    <Import Project="packages\libpng.1.6.28.1\build\native\libpng.targets" Condition="Exists('packages\libpng.1.6.28.1\build\native\libpng.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\libpng.redist.1.6.28.1\build\native\libpng.redist.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\libpng.redist.1.6.28.1\build\native\libpng.redist.targets'))" />
+    <Error Condition="!Exists('packages\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v120.windesktop.msvcstl.dyn.rt-dyn.targets'))" />
+    <Error Condition="!Exists('packages\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.targets'))" />
+    <Error Condition="!Exists('packages\libpng.1.6.28.1\build\native\libpng.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\libpng.1.6.28.1\build\native\libpng.targets'))" />
+  </Target>
 </Project>

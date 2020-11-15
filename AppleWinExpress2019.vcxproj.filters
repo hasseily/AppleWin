@@ -208,6 +208,9 @@
     <ClCompile Include="source\RemoteControl\RemoteControlManager.cpp">
       <Filter>Source Files\RemoteControl</Filter>
     </ClCompile>
+    <ClCompile Include="source\TilesetCreator.cpp">
+      <Filter>Source Files\Video</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\Applewin.h">
@@ -501,6 +504,9 @@
     <ClInclude Include="source\RemoteControl\RemoteControlManager.h">
       <Filter>Source Files\RemoteControl</Filter>
     </ClInclude>
+    <ClInclude Include="source\TilesetCreator.h">
+      <Filter>Source Files\Video</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="resource\Applewin.bmp">
@@ -680,6 +686,7 @@
     <None Include="resource\Disk2-13sector.rom" />
     <None Include="resource\Apple2_JPlus.rom" />
     <None Include="resource\Apple2_JPlus_Video.rom" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="docs\CodingConventions.txt">
