@@ -8,6 +8,7 @@ void TilesetCreator::start()
 {
     isActive = true;
     iInserted = 0;
+    ZeroMemory(pTilesetBuffer, PNGBUFFERSIZE);
     for (UINT8 i = 0; i < UINT8_MAX; i++)
     {
         aKnownTiles[i] = 0;
@@ -35,25 +36,27 @@ void TilesetCreator::stop()
 UINT TilesetCreator::parseTilesInFrameBuffer(const char* pFrameBuffer)
 {
     char tmpb[200] = {};
-    //sprintf(tmpb, "RMAP is: %x, %x\n", *MemGetMainPtr(RMAP), *MemGetMainPtr(RMAP + 1));
-    //OutputDebugString(tmpb);
     // Get the tile ids from the region map slots given the RMAP player position
     UINT32 iPlayerRegionPos = (*MemGetMainPtr(RMAP+1) << 8) + *MemGetMainPtr(RMAP);
     UINT32 iTileIdLocation; // Tile Id location in main memory
     UINT32 iTileId;
-    for (UINT8 i = 0; i < FBTILESPERCOL; i++)
+    for (UINT8 i = 1; i < FBTILESPERCOL-1; i++)
     {
-        for (UINT8 j = 0; j < FBTILESPERROW; j++)
+        for (UINT8 j = 1; j < FBTILESPERROW-1; j++)
         {
             iTileIdLocation = (REGIONMAPSTART + iPlayerRegionPos) - VISIBLEORIGINOFFSET + (REGIONMAPWIDTH * i) + j;
             iTileId = *MemGetMainPtr(iTileIdLocation);
             if (aKnownTiles[iTileId] > 0)
+            {
+//                sprintf(tmpb, "Tile is known - ID: %2X at location %8X\n", iTileId, iTileIdLocation - REGIONMAPSTART);
+//                OutputDebugString(tmpb);
                 continue;
+            }
             if (insertTileInTilesetBuffer(iTileId, (i * FBTILESPERROW) + j, pFrameBuffer))
             {
                 iInserted++;
-//                sprintf(tmpb, "Inserted from %2d,%2d tile ID: %2x\n", j, i, iTileId);
-//                OutputDebugString(tmpb);
+                sprintf(tmpb, "Inserted from %2d,%2d (location %4X) tile ID: %2x\n", j, i, iTileIdLocation - REGIONMAPSTART, iTileId);
+                OutputDebugString(tmpb);
             }
         }
     }
@@ -63,7 +66,6 @@ UINT TilesetCreator::parseTilesInFrameBuffer(const char* pFrameBuffer)
 /// <summary>
 /// Takes a tile from the framebuffer and inserts it into a patchwork buffer in the position of its tile ID.
 /// The tileset buffer is that of a patchwork image of TILESPERROW x COLSPERROW tiles, each TW x TH pixels big
-/// The ResMX constant defines the resolution multiplier from the source framebuffer. Resolution is brought back to 1 in the patchwork buffer
 /// </summary>
 /// <param name="iTileId">The tile id of the tile, which will determine its position in the patchwork</param>
 /// <param name="iTileNumber">The tile number within the in-game view of the world. Tile 0 is the top left tile. There are 17 x 11 tiles.</param>
@@ -77,8 +79,8 @@ bool TilesetCreator::insertTileInTilesetBuffer(UINT32 iTileId, UINT32 iTileNumbe
     UINT32 iFBOriginByte = ((TOPMARGIN + iFBRow * FBTH) * FRAMEBUFFERWIDTH) + ((LEFTMARGIN + iFBCol * FBTW) * sizeof(UINT32));
 
     // Calculate the destination 0,0 byte to draw the tile onto
-    UINT8 iPNGRow = iTileId / PNGTILESPERROW;
-    UINT8 iPNGCol = iTileId % PNGTILESPERCOL;
+    UINT8 iPNGRow = iTileId >> 4;
+    UINT8 iPNGCol = iTileId & 0b1111;
     // Same as above, except that there are no margins
     UINT32 iPNGOriginByte = (iPNGRow * PNGTH * PNGBUFFERWIDTH) + (iPNGCol * PNGTW * sizeof(UINT32));
 
@@ -101,19 +103,12 @@ bool TilesetCreator::insertTileInTilesetBuffer(UINT32 iTileId, UINT32 iTileNumbe
             b2 = pFrameBuffer[iFBCurrentByte + 2];
             b3 = pFrameBuffer[iFBCurrentByte + 3];
 
-            // bgra -> rgba . Force alpha to be opaque because when bgra==ffffff (white), a==00.
+            // Swap the RGB bytes, and force alpha to be opaque because when rgb==ffffff (white), a==00.
             iPNGCurrentByte = iPNGOriginByte + ((i / 2) * PNGBUFFERWIDTH) + ((j / 2) * sizeof(UINT32));
             pTilesetBuffer[iPNGCurrentByte] = b2;
             pTilesetBuffer[iPNGCurrentByte + 1] = b1;
             pTilesetBuffer[iPNGCurrentByte + 2] = b0;
             pTilesetBuffer[iPNGCurrentByte + 3] = (char)0xFF;
-
-            if (b0 + b1 + b2 + b3)
-            {
-                char tmpb[200] = {};
-                sprintf(tmpb, "FB byte is: %2X %2X %2X %2X\n", b0, b1, b2, b3);
-                OutputDebugString(tmpb);
-            }
         }
 	}
 

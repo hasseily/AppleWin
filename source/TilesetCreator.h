@@ -16,7 +16,6 @@ constexpr UINT8 FBTILESPERCOL = 11;
 constexpr auto FRAMEBUFFERWIDTH = 600 * sizeof(UINT32);
 constexpr auto FRAMEBUFFERHEIGHT = 420;
 constexpr auto FRAMEBUFFERSIZE = FRAMEBUFFERWIDTH * FRAMEBUFFERHEIGHT;
-constexpr auto ResMX = 2;	// resolution multiplier (AppleWin multiplies resolution by 2)
 constexpr auto LEFTMARGIN = 20;
 constexpr auto TOPMARGIN = 34;
 
@@ -38,7 +37,6 @@ public:
 	TilesetCreator()
 	{
 		pTilesetBuffer = new char[PNGBUFFERSIZE];
-		ZeroMemory(pTilesetBuffer, PNGBUFFERSIZE);
 	}
 	~TilesetCreator()
 	{

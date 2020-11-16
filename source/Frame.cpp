@@ -58,6 +58,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Configuration/PropertySheet.h"
 #include "Debugger/Debug.h"
 #include "RemoteControl/RemoteControlManager.h"
+#include "TilesetCreator.h"
 
 //#define ENABLE_MENU 0
 #define DEBUG_KEY_MESSAGES 0
@@ -172,6 +173,12 @@ static bool g_bFrameActive = false;
 static bool g_windowMinimized = false;
 
 static std::string driveTooltip;
+
+
+TilesetCreator g_TilesetCreator;
+static UINT8 g_PlayerX = 0;
+static UINT8 g_PlayerY = 0;
+
 
 // __ Prototypes __________________________________________________________________________________
 void DrawCrosshairs (int x, int y);
@@ -1311,6 +1318,11 @@ LRESULT CALLBACK FrameWndProc (
 	case WM_KEYDOWN:
 		KeybUpdateCtrlShiftStatus();
 
+		if (g_TilesetCreator.isActive)
+		{
+			RemoteControlManager::setParseTiles(&g_TilesetCreator);
+		}
+
 		// Processing is done in WM_KEYUP for: VK_F1 VK_F2 VK_F3 VK_F4 VK_F5 VK_F6 VK_F7 VK_F8
 		if ((wparam >= VK_F1) && (wparam <= VK_F8) && (buttondown == -1))
 		{
@@ -1326,7 +1338,10 @@ LRESULT CALLBACK FrameWndProc (
 		else if (wparam == VK_NUMPAD0)
 		{
 			// Start and stop the tile parser.
-			RemoteControlManager::VideoToggleTilesetCreator();
+			if (g_TilesetCreator.isActive)
+				g_TilesetCreator.stop();
+			else
+				g_TilesetCreator.start();
 		}
 		else if (wparam == VK_F9)
 		{

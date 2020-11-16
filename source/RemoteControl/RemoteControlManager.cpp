@@ -81,15 +81,11 @@ UINT iCurrentTicks;						// Used to check the repeat interval
 UINT8 *pReorderedFramebufferbits = new UINT8[GetFrameBufferWidth() * GetFrameBufferHeight() * sizeof(bgra_t)]; // the frame realigned properly
 UINT8 iOldVolumeLevel;
 static std::unordered_set<UINT8> exclusionSet;		// list of VK codes that will not be passed through to Applewin
+TilesetCreator* g_TilesetCreator;
+bool parseTiles = false;
 
 bool bHardDiskIsLoaded = false;			// If HD is loaded, use it instead of floppy
 bool bFloppyIsLoaded = false;
-
-TilesetCreator g_TilesetCreator;
-#define XPOS 0x6CFC
-#define YPOS 0x6CFD
-static UINT8 g_PlayerX = 0;
-static UINT8 g_PlayerY = 0;
 
 // Private Prototypes
 void reverseScanlines(uint8_t* destination, uint8_t* source, uint32_t width, uint32_t height, uint8_t depth);
@@ -97,15 +93,11 @@ void reverseScanlines(uint8_t* destination, uint8_t* source, uint32_t width, uin
 //===========================================================================
 // Global functions
 
-
-void RemoteControlManager::VideoToggleTilesetCreator(void)
+void RemoteControlManager::setParseTiles(TilesetCreator* tsCreator)
 {
-	if (g_TilesetCreator.isActive)
-		g_TilesetCreator.stop();
-	else
-		g_TilesetCreator.start();
+	g_TilesetCreator = tsCreator;
+	parseTiles = true;
 }
-
 
 bool RemoteControlManager::isRemoteControlEnabled()
 {
@@ -426,17 +418,11 @@ void RemoteControlManager::sendOutput(LPBITMAPINFO g_pFramebufferinfo, UINT8 *g_
 			);
 		}
 
-		UINT8 XX = *MemGetMainPtr(XPOS);
-		UINT8 YY = *MemGetMainPtr(YPOS);
-		if (g_TilesetCreator.isActive)
+
+		if (parseTiles)
 		{
-			// Check X, Y position. If no change, do nothing
-			if ((g_PlayerX != XX) || (g_PlayerY != YY))
-			{
-				g_PlayerX = XX;
-				g_PlayerY = YY;
-				g_TilesetCreator.parseTilesInFrameBuffer((const char*)pReorderedFramebufferbits);
-			}
+			g_TilesetCreator->parseTilesInFrameBuffer((const char*)pReorderedFramebufferbits);
+			parseTiles = false;
 		}
 
 		CMouseInterface* pMouseCard = GetCardMgr().GetMouseCard();
