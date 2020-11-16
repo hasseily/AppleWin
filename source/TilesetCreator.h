@@ -13,21 +13,19 @@ constexpr auto FBTW = 28;	// FB tile width in pixels
 constexpr auto FBTH = 32;	// FB tile height in pixels
 constexpr UINT8 FBTILESPERROW = 17;
 constexpr UINT8 FBTILESPERCOL = 11;
-constexpr auto FRAMEBUFFERWIDTH = 600;
+constexpr auto FRAMEBUFFERWIDTH = 600 * sizeof(UINT32);
 constexpr auto FRAMEBUFFERHEIGHT = 420;
 constexpr auto FRAMEBUFFERSIZE = FRAMEBUFFERWIDTH * FRAMEBUFFERHEIGHT;
 constexpr auto ResMX = 2;	// resolution multiplier (AppleWin multiplies resolution by 2)
 constexpr auto LEFTMARGIN = 20;
 constexpr auto TOPMARGIN = 34;
-constexpr auto RIGHTMARGIN = FRAMEBUFFERWIDTH - LEFTMARGIN - FBTILESPERROW*FBTW;
-constexpr auto BOTTOMMARGIN = FRAMEBUFFERHEIGHT - TOPMARGIN - FBTILESPERCOL*FBTH;
 
 // For the patchwork PNG
 constexpr auto PNGTW = 14;
 constexpr auto PNGTH = 16;
 constexpr auto PNGTILESPERROW = 16;
 constexpr auto PNGTILESPERCOL	= 16;
-constexpr auto PNGBUFFERWIDTH = PNGTW * PNGTILESPERROW;
+constexpr auto PNGBUFFERWIDTH = PNGTW * PNGTILESPERROW * sizeof(UINT32);
 constexpr auto PNGBUFFERHEIGHT = PNGTH * PNGTILESPERCOL;
 constexpr auto PNGBUFFERSIZE = PNGBUFFERWIDTH * PNGBUFFERHEIGHT;
 
@@ -39,8 +37,8 @@ public:
 	UINT32 iInserted = 0;
 	TilesetCreator()
 	{
-		pTilesetBuffer = new UINT32[PNGBUFFERSIZE];
-		ZeroMemory(pTilesetBuffer, PNGBUFFERSIZE*sizeof(UINT32));
+		pTilesetBuffer = new char[PNGBUFFERSIZE];
+		ZeroMemory(pTilesetBuffer, PNGBUFFERSIZE);
 	}
 	~TilesetCreator()
 	{
@@ -49,11 +47,11 @@ public:
 	}
 	void start();
 	void stop();
-	UINT parseTilesInFrameBuffer(UINT32* pFrameBuffer);
-	bool insertTileInTilesetBuffer(UINT32 iTileId, UINT32 iTileNumber, UINT32* pFrameBuffer);
+	UINT parseTilesInFrameBuffer(const char* pFrameBuffer);
+	bool insertTileInTilesetBuffer(UINT32 iTileId, UINT32 iTileNumber, const char* pFrameBuffer);
 	bool saveTilesetPNG(std::string filepath);
 private:
-	UINT32* pTilesetBuffer;
+	char* pTilesetBuffer;
 	UINT8 aKnownTiles[UINT8_MAX] = {0};
 };
 

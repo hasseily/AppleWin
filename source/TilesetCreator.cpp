@@ -19,7 +19,7 @@ void TilesetCreator::stop()
 {
     isActive = false;
     std::fstream fsFile("Nox Tileset - Auto.data", std::ios::out | std::ios::binary);
-    fsFile.write(reinterpret_cast<char*>(pTilesetBuffer), PNGBUFFERSIZE * sizeof(UINT32));
+    fsFile.write(pTilesetBuffer, PNGBUFFERSIZE);
     fsFile.close();
     std::string msg("Stopped Tileset Creator!\nPNG is at: Nox Tileset - Auto.png\nNumber of tiles loaded: ");
     msg.append(std::to_string(iInserted));
@@ -32,7 +32,7 @@ void TilesetCreator::stop()
 /// </summary>
 /// <param name="pFrameBuffer">The game's framebuffer</param>
 /// <returns>Number of tiles inserted</returns>
-UINT TilesetCreator::parseTilesInFrameBuffer(UINT32* pFrameBuffer)
+UINT TilesetCreator::parseTilesInFrameBuffer(const char* pFrameBuffer)
 {
     char tmpb[200] = {};
     //sprintf(tmpb, "RMAP is: %x, %x\n", *MemGetMainPtr(RMAP), *MemGetMainPtr(RMAP + 1));
@@ -69,23 +69,24 @@ UINT TilesetCreator::parseTilesInFrameBuffer(UINT32* pFrameBuffer)
 /// <param name="iTileNumber">The tile number within the in-game view of the world. Tile 0 is the top left tile. There are 17 x 11 tiles.</param>
 /// <param name="pFrameBuffer">the framebuffer in-game view of the world</param>
 
-bool TilesetCreator::insertTileInTilesetBuffer(UINT32 iTileId, UINT32 iTileNumber, UINT32* pFrameBuffer)
+bool TilesetCreator::insertTileInTilesetBuffer(UINT32 iTileId, UINT32 iTileNumber, const char* pFrameBuffer)
 {
-    // Calculate the source 0,0 pixel to get the tile from
+    // Calculate the source 0,0 byte to get the tile from
     UINT8 iFBRow = iTileNumber / FBTILESPERROW;
     UINT8 iFBCol = iTileNumber % FBTILESPERROW;
-    UINT32 iFBOriginPixel = ((TOPMARGIN + iFBRow * FBTH) * FRAMEBUFFERWIDTH) + (LEFTMARGIN + iFBCol * FBTW);
+    UINT32 iFBOriginByte = ((TOPMARGIN + iFBRow * FBTH) * FRAMEBUFFERWIDTH) + ((LEFTMARGIN + iFBCol * FBTW) * sizeof(UINT32));
 
-    // Calculate the destination 0,0 pixel to draw the tile onto
+    // Calculate the destination 0,0 byte to draw the tile onto
     UINT8 iPNGRow = iTileId / PNGTILESPERROW;
     UINT8 iPNGCol = iTileId % PNGTILESPERCOL;
     // Same as above, except that there are no margins
-    UINT32 iPNGOriginPixel = (iPNGRow * PNGTH * PNGBUFFERWIDTH) + (iPNGCol * PNGTW);
+    UINT32 iPNGOriginByte = (iPNGRow * PNGTH * PNGBUFFERWIDTH) + (iPNGCol * PNGTW * sizeof(UINT32));
 
     // Map every pixel of the source tile onto the destination tile
     // But only parse every other line, and skip every other pixel
     UINT8 b0, b1, b2, b3;   // The individual pixel bytes, low to high
-    UINT32 fbPixel;
+    UINT iFBCurrentByte;
+    UINT iPNGCurrentByte;
 	for (UINT32 i = 0; i < FBTH; i ++)
 	{
         if (i % 2)
@@ -94,16 +95,25 @@ bool TilesetCreator::insertTileInTilesetBuffer(UINT32 iTileId, UINT32 iTileNumbe
 		{
             if (j % 2)
                 continue;
-            fbPixel = pFrameBuffer[iFBOriginPixel + (i * FRAMEBUFFERWIDTH) + j];
-            // bgra -> argb . Force alpha to be opaque
-            b0 = UINT8(fbPixel);
-            b1 = UINT8(fbPixel >> 8);
-            b2 = UINT8(fbPixel >> 16);
-            b3 = UINT8(fbPixel >> 24);
-            fbPixel = b1        | (b2   << 8);
-            fbPixel = fbPixel   | (b3   << 16);
-            fbPixel = fbPixel   | (0xff << 24);
-            pTilesetBuffer[iPNGOriginPixel + ((i/2)* PNGBUFFERWIDTH) + (j/2)] = fbPixel;
+            iFBCurrentByte = iFBOriginByte + (i * FRAMEBUFFERWIDTH) + (j * sizeof(UINT32));
+            b0 = pFrameBuffer[iFBCurrentByte];
+            b1 = pFrameBuffer[iFBCurrentByte + 1];
+            b2 = pFrameBuffer[iFBCurrentByte + 2];
+            b3 = pFrameBuffer[iFBCurrentByte + 3];
+
+            // bgra -> rgba . Force alpha to be opaque because when bgra==ffffff (white), a==00.
+            iPNGCurrentByte = iPNGOriginByte + ((i / 2) * PNGBUFFERWIDTH) + ((j / 2) * sizeof(UINT32));
+            pTilesetBuffer[iPNGCurrentByte] = b2;
+            pTilesetBuffer[iPNGCurrentByte + 1] = b1;
+            pTilesetBuffer[iPNGCurrentByte + 2] = b0;
+            pTilesetBuffer[iPNGCurrentByte + 3] = (char)0xFF;
+
+            if (b0 + b1 + b2 + b3)
+            {
+                char tmpb[200] = {};
+                sprintf(tmpb, "FB byte is: %2X %2X %2X %2X\n", b0, b1, b2, b3);
+                OutputDebugString(tmpb);
+            }
         }
 	}
 

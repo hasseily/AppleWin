@@ -435,7 +435,7 @@ void RemoteControlManager::sendOutput(LPBITMAPINFO g_pFramebufferinfo, UINT8 *g_
 			{
 				g_PlayerX = XX;
 				g_PlayerY = YY;
-				g_TilesetCreator.parseTilesInFrameBuffer((UINT32 *)pReorderedFramebufferbits);
+				g_TilesetCreator.parseTilesInFrameBuffer((const char*)pReorderedFramebufferbits);
 			}
 		}
 
