@@ -3,30 +3,49 @@
 #include "Frame.h"
 #include "Memory.h"
 #include <png.h>
+#include <fstream>
 
-
-void TilesetCreator::reset()
+void TilesetCreator::start()
 {
     isActive = true;
+    iInserted = 0;
+    for (UINT8 i = 0; i < UINT8_MAX; i++)
+    {
+        aKnownTiles[i] = 0;
+    }
+    MessageBox(g_hFrameWindow, "Starting Tileset Creator!", TEXT("AppleWin Tileset"), MB_OK);
 }
 
+void TilesetCreator::stop()
+{
+    isActive = false;
+    saveTilesetPNG(std::string("Nox Tileset - Auto.png"));
+    //std::fstream fsFile("Nox Tileset - Auto.data", std::ios::out | std::ios::binary);
+    //fsFile.write((const char*)pTilesetBuffer, PNGBUFFERSIZE * sizeof(UINT32));
+    //fsFile.close();
+    std::string msg("Stopped Tileset Creator!\nPNG is at: Nox Tileset - Auto.png\nNumber of tiles loaded: ");
+    msg.append(std::to_string(iInserted));
+    MessageBox(g_hFrameWindow, msg.c_str(), TEXT("AppleWin Tileset"), MB_OK);
+}
 
 /// <summary>
 /// Goes through all the tiles in the framebuffer and parses them, adding them to the PNG patchwork as necessary
+/// This method only calculates a tile's unique ID and checks that it hasn't been processed yet.
 /// </summary>
 /// <param name="pFrameBuffer">The game's framebuffer</param>
 /// <returns>Number of tiles inserted</returns>
-UINT TilesetCreator::parseTilesInFrameBuffer(UINT8* pFrameBuffer)
+UINT TilesetCreator::parseTilesInFrameBuffer(UINT32* pFrameBuffer)
 {
+
     // Get the tile ids from the region map slots given the RMAP player position
+    UINT32 iPlayerRegionPos = (*MemGetMainPtr(RMAP+1) << 8) + *MemGetMainPtr(RMAP);
     UINT32 iTileIdLocation; // Tile Id location in main memory
     UINT32 iTileId;
-    UINT32 iInserted = 0;
     for (UINT8 i = 0; i < FBTILESPERCOL; i++)
     {
         for (UINT8 j = 0; j < FBTILESPERROW; j++)
         {
-            iTileIdLocation = REGIONMAPSTART + (RMAP - VISIBLEORIGINOFFSET) + (REGIONMAPWIDTH * i) + j;
+            iTileIdLocation = (REGIONMAPSTART + iPlayerRegionPos) - VISIBLEORIGINOFFSET + (REGIONMAPWIDTH * i) + j;
             iTileId = *MemGetMainPtr(iTileIdLocation);
             if (aKnownTiles[iTileId] > 0)
                 continue;
@@ -46,25 +65,43 @@ UINT TilesetCreator::parseTilesInFrameBuffer(UINT8* pFrameBuffer)
 /// <param name="iTileNumber">The tile number within the in-game view of the world. Tile 0 is the top left tile. There are 17 x 11 tiles.</param>
 /// <param name="pFrameBuffer">the framebuffer in-game view of the world</param>
 
-bool TilesetCreator::insertTileInTilesetBuffer(UINT32 iTileId, UINT32 iTileNumber, UINT8* pFrameBuffer)
+bool TilesetCreator::insertTileInTilesetBuffer(UINT32 iTileId, UINT32 iTileNumber, UINT32* pFrameBuffer)
 {
     // Calculate the source 0,0 pixel to get the tile from
     UINT8 iFBRow = iTileNumber / FBTILESPERROW;
     UINT8 iFBCol = iTileNumber % FBTILESPERROW;
-    UINT32 iFBOriginPixel = ((TOPMARGIN + iFBRow * TH * FRAMEBUFFERWIDTH) + (LEFTMARGIN + iFBCol * TW * PIXELDEPTH)) * ResMX;
+    UINT32 iFBOriginPixel = ((TOPMARGIN + iFBRow * FBTH) * FRAMEBUFFERWIDTH) + (LEFTMARGIN + iFBCol * FBTW);
 
     // Calculate the destination 0,0 pixel to draw the tile onto
     UINT8 iPNGRow = iTileId / PNGTILESPERROW;
     UINT8 iPNGCol = iTileId % PNGTILESPERCOL;
-    // This is exactly the same code as for iFBOriginPixel except that margins are 0 and ResMX is 1
-    UINT32 iPNGOriginPixel = (iPNGRow * TH * PNGBYTESPERROW) + (iPNGCol * TW * PIXELDEPTH);
+    // Same as above, except that there are no margins
+    UINT32 iPNGOriginPixel = (iPNGRow * PNGTH * PNGBUFFERWIDTH) + (iPNGCol * PNGTW);
 
     // Map every pixel of the source tile onto the destination tile
-	for (UINT32 i = 0; i < TH; i ++)
+    // But only parse every other line, and skip every other pixel
+    UINT8 b0, b1, b2, b3;   // The individual pixel bytes, low to high
+    UINT32 fbPixel;
+	for (UINT32 i = 0; i < FBTH; i ++)
 	{
-		for (UINT32 j = 0; j < (TW); j ++)
+        if (i % 2)
+            continue;
+		for (UINT32 j = 0; j < FBTW; j ++)
 		{
-            pTilesetBuffer[iPNGOriginPixel + (i* PNGBYTESPERROW) + j] = pFrameBuffer[(iFBOriginPixel + (i*FRAMEBUFFERWIDTH) + j) * ResMX];
+            if (j % 2)
+                continue;
+            fbPixel = pFrameBuffer[iFBOriginPixel + (i * FRAMEBUFFERWIDTH) + j];
+            // bgra?
+            b0 = UINT8(fbPixel);
+            b1 = UINT8(fbPixel >> 8);
+            b2 = UINT8(fbPixel >> 16);
+            b3 = UINT8(fbPixel >> 24);
+            // Convert to argb
+            fbPixel = b1        | ((UINT32)b2   << 8);
+            fbPixel = fbPixel   | ((UINT32)b3   << 16);
+            fbPixel = fbPixel   | (0xff         << 24);
+
+            pTilesetBuffer[iPNGOriginPixel + ((i/2)* PNGBUFFERWIDTH) + (j/2)] = fbPixel;
         }
 	}
 
@@ -80,21 +117,20 @@ bool TilesetCreator::insertTileInTilesetBuffer(UINT32 iTileId, UINT32 iTileNumbe
 bool TilesetCreator::saveTilesetPNG(std::string filepath)
 {
     int y;
-    int width = PNGTILESPERROW * TW;
-    int height = PNGTILESPERCOL * TH;
+    int width = PNGBUFFERWIDTH;
+    int height = PNGBUFFERHEIGHT;
     int bytewidth = width * sizeof(UINT32);
-    png_byte color_type = 6;    // ARGB
+    png_byte color_type = PNG_COLOR_TYPE_RGB_ALPHA;    // ARGB
     png_byte bit_depth = 8;
 
     png_structp png_ptr;
     png_infop info_ptr;
-    png_bytep *row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * height);
+    png_bytep* row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * height);
 
     /* fill row pointers */
     for (y = 0; y < height; y++)
     {
-        row_pointers[y] = (png_bytep)malloc(sizeof(UINT32) * width);
-        memcpy(row_pointers[y], pTilesetBuffer + (bytewidth * y), bytewidth);
+        row_pointers[y] = (png_bytep)pTilesetBuffer + (bytewidth * y);
     }
 
     /* create file */
@@ -164,8 +200,6 @@ bool TilesetCreator::saveTilesetPNG(std::string filepath)
     png_write_end(png_ptr, NULL);
 
     /* cleanup heap allocation */
-    for (y = 0; y < height; y++)
-        free(row_pointers[y]);
     free(row_pointers);
 
     fclose(fp);

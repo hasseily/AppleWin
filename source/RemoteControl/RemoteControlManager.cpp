@@ -47,6 +47,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "zlib.h"
 #include <unordered_set>
 #include "Configuration/PropertySheet.h"
+#include "TilesetCreator.h"
 
 
 #define UNKNOWN_VOLUME_NAME "Unknown Volume"
@@ -84,11 +85,27 @@ static std::unordered_set<UINT8> exclusionSet;		// list of VK codes that will no
 bool bHardDiskIsLoaded = false;			// If HD is loaded, use it instead of floppy
 bool bFloppyIsLoaded = false;
 
+TilesetCreator g_TilesetCreator;
+#define XPOS 0x6CFC
+#define YPOS 0x6CFD
+static UINT8 g_PlayerX = 0;
+static UINT8 g_PlayerY = 0;
+
 // Private Prototypes
 void reverseScanlines(uint8_t* destination, uint8_t* source, uint32_t width, uint32_t height, uint8_t depth);
 
 //===========================================================================
 // Global functions
+
+
+void RemoteControlManager::VideoToggleTilesetCreator(void)
+{
+	if (g_TilesetCreator.isActive)
+		g_TilesetCreator.stop();
+	else
+		g_TilesetCreator.start();
+}
+
 
 bool RemoteControlManager::isRemoteControlEnabled()
 {
@@ -409,6 +426,18 @@ void RemoteControlManager::sendOutput(LPBITMAPINFO g_pFramebufferinfo, UINT8 *g_
 			);
 		}
 
+		UINT8 XX = *MemGetMainPtr(XPOS);
+		UINT8 YY = *MemGetMainPtr(YPOS);
+		if (g_TilesetCreator.isActive)
+		{
+			// Check X, Y position. If no change, do nothing
+			if ((g_PlayerX != XX) || (g_PlayerY != YY))
+			{
+				g_PlayerX = XX;
+				g_PlayerY = YY;
+				g_TilesetCreator.parseTilesInFrameBuffer((UINT32 *)pReorderedFramebufferbits);
+			}
+		}
 
 		CMouseInterface* pMouseCard = GetCardMgr().GetMouseCard();
 		// Do not use pMouseCard->isEnabled() or equivalent, since it'll return false

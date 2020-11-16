@@ -57,6 +57,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../resource/resource.h"
 #include "Configuration/PropertySheet.h"
 #include "Debugger/Debug.h"
+#include "RemoteControl/RemoteControlManager.h"
 
 //#define ENABLE_MENU 0
 #define DEBUG_KEY_MESSAGES 0
@@ -177,7 +178,6 @@ void DrawCrosshairs (int x, int y);
 void UpdateMouseInAppleViewport(int iOutOfBoundsX, int iOutOfBoundsY, int x=0, int y=0);
 static void ScreenWindowResize(const bool bCtrlKey);
 void FrameResizeWindow(int nNewScale);
-
 
 // ==========================================================================
 
@@ -1322,6 +1322,11 @@ LRESULT CALLBACK FrameWndProc (
 				buttonover = -1;
 			}
 			DrawButton((HDC)0,buttondown);
+		}
+		else if (wparam == VK_NUMPAD0)
+		{
+			// Start and stop the tile parser.
+			RemoteControlManager::VideoToggleTilesetCreator();
 		}
 		else if (wparam == VK_F9)
 		{

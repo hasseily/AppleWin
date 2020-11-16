@@ -200,6 +200,7 @@ bool    VideoGetSWPAGE2(void);
 bool    VideoGetSWTEXT(void);
 bool    VideoGetSWAltCharSet(void);
 
+
 void    VideoSaveSnapshot(class YamlSaveHelper& yamlSaveHelper);
 void    VideoLoadSnapshot(class YamlLoadHelper& yamlLoadHelper, UINT version);
 

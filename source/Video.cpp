@@ -96,11 +96,6 @@ static VideoStyle_e g_eVideoStyle = VS_HALF_SCANLINES;
 
 static bool g_bVideoScannerNTSC = true;  // NTSC video scanning (or PAL)
 
-TilesetCreator g_TilesetCreator;
-#define XPOS 0x6CFC
-#define YPOS 0x6CFD
-static UINT32 g_PlayerX = 0;
-static UINT32 g_PlayerY = 0;
 
 static LPDIRECTDRAW g_lpDD = NULL;
 
@@ -614,21 +609,7 @@ void VideoRefreshScreen(uint32_t uRedrawWholeScreenVideoMode /* =0*/, bool bRedr
 	}
 
 	g_RemoteControlMgr.sendOutput(g_pFramebufferinfo, g_pFramebufferbits);	// RIK
-	if (g_TilesetCreator.isActive)
-	{
-		// Check X, Y position. If no change, do nothing
-		if ((g_PlayerX != *MemGetMainPtr(XPOS)) || (g_PlayerY != *MemGetMainPtr(YPOS)))
-		{
-			g_PlayerX = *MemGetMainPtr(XPOS);
-			g_PlayerY = *MemGetMainPtr(YPOS);
-			g_TilesetCreator.parseTilesInFrameBuffer(g_pFramebufferbits);
-		}
-		// if we're at the bottom of the map, finish
-		if ((g_PlayerX > 0xF1) && (g_PlayerY > 0xF1))
-		{
-			g_TilesetCreator.saveTilesetPNG(std::string("NOX Tileset - auto.png"));
-		}
-	}
+
 
 #ifdef NO_DIRECT_X
 #else

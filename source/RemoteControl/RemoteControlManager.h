@@ -17,6 +17,8 @@ public:
 	void updateRunningProgramInfo();
 	void setKeypressExclusionList(UINT8 exclusionList[], UINT8 length);
 
+
+	static void	VideoToggleTilesetCreator(void);
 	static bool RemoteControlManager::isRemoteControlEnabled();
 	static void RemoteControlManager::setRemoteControlEnabled(bool bEnabled);
 	static bool RemoteControlManager::isTrackOnlyEnabled();
