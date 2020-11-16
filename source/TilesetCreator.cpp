@@ -2,7 +2,6 @@
 #include "TilesetCreator.h"
 #include "Frame.h"
 #include "Memory.h"
-#include <png.h>
 #include <fstream>
 
 void TilesetCreator::start()
@@ -19,10 +18,9 @@ void TilesetCreator::start()
 void TilesetCreator::stop()
 {
     isActive = false;
-    saveTilesetPNG(std::string("Nox Tileset - Auto.png"));
-    //std::fstream fsFile("Nox Tileset - Auto.data", std::ios::out | std::ios::binary);
-    //fsFile.write((const char*)pTilesetBuffer, PNGBUFFERSIZE * sizeof(UINT32));
-    //fsFile.close();
+    std::fstream fsFile("Nox Tileset - Auto.data", std::ios::out | std::ios::binary);
+    fsFile.write(reinterpret_cast<char*>(pTilesetBuffer), PNGBUFFERSIZE * sizeof(UINT32));
+    fsFile.close();
     std::string msg("Stopped Tileset Creator!\nPNG is at: Nox Tileset - Auto.png\nNumber of tiles loaded: ");
     msg.append(std::to_string(iInserted));
     MessageBox(g_hFrameWindow, msg.c_str(), TEXT("AppleWin Tileset"), MB_OK);
@@ -36,7 +34,9 @@ void TilesetCreator::stop()
 /// <returns>Number of tiles inserted</returns>
 UINT TilesetCreator::parseTilesInFrameBuffer(UINT32* pFrameBuffer)
 {
-
+    char tmpb[200] = {};
+    //sprintf(tmpb, "RMAP is: %x, %x\n", *MemGetMainPtr(RMAP), *MemGetMainPtr(RMAP + 1));
+    //OutputDebugString(tmpb);
     // Get the tile ids from the region map slots given the RMAP player position
     UINT32 iPlayerRegionPos = (*MemGetMainPtr(RMAP+1) << 8) + *MemGetMainPtr(RMAP);
     UINT32 iTileIdLocation; // Tile Id location in main memory
@@ -50,7 +50,11 @@ UINT TilesetCreator::parseTilesInFrameBuffer(UINT32* pFrameBuffer)
             if (aKnownTiles[iTileId] > 0)
                 continue;
             if (insertTileInTilesetBuffer(iTileId, (i * FBTILESPERROW) + j, pFrameBuffer))
+            {
                 iInserted++;
+//                sprintf(tmpb, "Inserted from %2d,%2d tile ID: %2x\n", j, i, iTileId);
+//                OutputDebugString(tmpb);
+            }
         }
     }
     return iInserted;
@@ -91,118 +95,18 @@ bool TilesetCreator::insertTileInTilesetBuffer(UINT32 iTileId, UINT32 iTileNumbe
             if (j % 2)
                 continue;
             fbPixel = pFrameBuffer[iFBOriginPixel + (i * FRAMEBUFFERWIDTH) + j];
-            // bgra?
+            // bgra -> argb . Force alpha to be opaque
             b0 = UINT8(fbPixel);
             b1 = UINT8(fbPixel >> 8);
             b2 = UINT8(fbPixel >> 16);
             b3 = UINT8(fbPixel >> 24);
-            // Convert to argb
-            fbPixel = b1        | ((UINT32)b2   << 8);
-            fbPixel = fbPixel   | ((UINT32)b3   << 16);
-            fbPixel = fbPixel   | (0xff         << 24);
-
+            fbPixel = b1        | (b2   << 8);
+            fbPixel = fbPixel   | (b3   << 16);
+            fbPixel = fbPixel   | (0xff << 24);
             pTilesetBuffer[iPNGOriginPixel + ((i/2)* PNGBUFFERWIDTH) + (j/2)] = fbPixel;
         }
 	}
 
 	aKnownTiles[iTileId] = 1;
 	return true;
-}
-
-/// <summary>
-/// Saves a PNG file of the tileset.
-/// </summary>
-/// <param name="filepath"></param>
-/// <returns></returns>
-bool TilesetCreator::saveTilesetPNG(std::string filepath)
-{
-    int y;
-    int width = PNGBUFFERWIDTH;
-    int height = PNGBUFFERHEIGHT;
-    int bytewidth = width * sizeof(UINT32);
-    png_byte color_type = PNG_COLOR_TYPE_RGB_ALPHA;    // ARGB
-    png_byte bit_depth = 8;
-
-    png_structp png_ptr;
-    png_infop info_ptr;
-    png_bytep* row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * height);
-
-    /* fill row pointers */
-    for (y = 0; y < height; y++)
-    {
-        row_pointers[y] = (png_bytep)pTilesetBuffer + (bytewidth * y);
-    }
-
-    /* create file */
-    FILE* fp = fopen(filepath.c_str(), "wb");
-    if (!fp)
-    {
-        MessageBox(g_hFrameWindow, "[write_png_file] File %s could not be opened for writing", TEXT("AppleWin Error"), MB_OK);
-        return false;
-    }
-
-    /* initialize stuff */
-    png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-
-    if (!png_ptr)
-    {
-        MessageBox(g_hFrameWindow, "[write_png_file] png_create_write_struct failed", TEXT("AppleWin Error"), MB_OK);
-        return false;
-    }
-
-    info_ptr = png_create_info_struct(png_ptr);
-    if (!info_ptr)
-    {
-        MessageBox(g_hFrameWindow, "[write_png_file] png_create_info_struct failed", TEXT("AppleWin Error"), MB_OK);
-        return false;
-    }
-
-    if (setjmp(png_jmpbuf(png_ptr)))
-    {
-        MessageBox(g_hFrameWindow, "[write_png_file] Error during init_io", TEXT("AppleWin Error"), MB_OK);
-        return false;
-    }
-
-    png_init_io(png_ptr, fp);
-
-
-    /* write header */
-    if (setjmp(png_jmpbuf(png_ptr)))
-    {
-        MessageBox(g_hFrameWindow, "[write_png_file] Error during writing header", TEXT("AppleWin Error"), MB_OK);
-        return false;
-    }
-
-    png_set_IHDR(png_ptr, info_ptr, width, height,
-        bit_depth, color_type, PNG_INTERLACE_NONE,
-        PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
-
-    png_write_info(png_ptr, info_ptr);
-
-
-    /* write bytes */
-    if (setjmp(png_jmpbuf(png_ptr)))
-    {
-        MessageBox(g_hFrameWindow, "[write_png_file] Error during writing bytes", TEXT("AppleWin Error"), MB_OK);
-        return false;
-    }
-
-    png_write_image(png_ptr, row_pointers);
-
-
-    /* end write */
-    if (setjmp(png_jmpbuf(png_ptr)))
-    {
-        MessageBox(g_hFrameWindow, "[write_png_file] Error during end of write", TEXT("AppleWin Error"), MB_OK);
-        return false;
-    }
-
-    png_write_end(png_ptr, NULL);
-
-    /* cleanup heap allocation */
-    free(row_pointers);
-
-    fclose(fp);
-    isActive = false;
-    return true;
 }

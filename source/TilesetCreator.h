@@ -40,6 +40,7 @@ public:
 	TilesetCreator()
 	{
 		pTilesetBuffer = new UINT32[PNGBUFFERSIZE];
+		ZeroMemory(pTilesetBuffer, PNGBUFFERSIZE*sizeof(UINT32));
 	}
 	~TilesetCreator()
 	{
@@ -53,7 +54,7 @@ public:
 	bool saveTilesetPNG(std::string filepath);
 private:
 	UINT32* pTilesetBuffer;
-	UINT8 aKnownTiles[UINT8_MAX] = {};
+	UINT8 aKnownTiles[UINT8_MAX] = {0};
 };
 
 
