@@ -1,7 +1,6 @@
 #pragma once
 
 #include "DiskImage.h"
-#include "TilesetCreator.h"
 
 class RemoteControlManager
 {
@@ -23,7 +22,7 @@ public:
 	static void RemoteControlManager::setRemoteControlEnabled(bool bEnabled);
 	static bool RemoteControlManager::isTrackOnlyEnabled();
 	static void RemoteControlManager::setTrackOnlyEnabled(bool bEnabled);
-	static void RemoteControlManager::setParseTiles(TilesetCreator* tsCreator);
+	static const char* RemoteControlManager::getReorderedFramebufferBits();
 
 	UINT const kMinRepeatInterval = 400;	// Minimum keypress repeat message interval in ms
 };

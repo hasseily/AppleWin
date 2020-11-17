@@ -93,10 +93,9 @@ void reverseScanlines(uint8_t* destination, uint8_t* source, uint32_t width, uin
 //===========================================================================
 // Global functions
 
-void RemoteControlManager::setParseTiles(TilesetCreator* tsCreator)
+const char* RemoteControlManager::getReorderedFramebufferBits()
 {
-	g_TilesetCreator = tsCreator;
-	parseTiles = true;
+	return (const char*)pReorderedFramebufferbits;
 }
 
 bool RemoteControlManager::isRemoteControlEnabled()
@@ -419,11 +418,11 @@ void RemoteControlManager::sendOutput(LPBITMAPINFO g_pFramebufferinfo, UINT8 *g_
 		}
 
 
-		if (parseTiles)
-		{
-			g_TilesetCreator->parseTilesInFrameBuffer((const char*)pReorderedFramebufferbits);
-			parseTiles = false;
-		}
+		//if (parseTiles)
+		//{
+		//	g_TilesetCreator->parseTilesInFrameBuffer((const char*)pReorderedFramebufferbits);
+		//	parseTiles = false;
+		//}
 
 		CMouseInterface* pMouseCard = GetCardMgr().GetMouseCard();
 		// Do not use pMouseCard->isEnabled() or equivalent, since it'll return false

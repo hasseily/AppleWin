@@ -1318,10 +1318,10 @@ LRESULT CALLBACK FrameWndProc (
 	case WM_KEYDOWN:
 		KeybUpdateCtrlShiftStatus();
 
-		if (g_TilesetCreator.isActive)
-		{
-			RemoteControlManager::setParseTiles(&g_TilesetCreator);
-		}
+		//if (g_TilesetCreator.isActive)
+		//{
+		//	g_TilesetCreator.parseTilesInFrameBuffer();
+		//}
 
 		// Processing is done in WM_KEYUP for: VK_F1 VK_F2 VK_F3 VK_F4 VK_F5 VK_F6 VK_F7 VK_F8
 		if ((wparam >= VK_F1) && (wparam <= VK_F8) && (buttondown == -1))
@@ -1337,11 +1337,21 @@ LRESULT CALLBACK FrameWndProc (
 		}
 		else if (wparam == VK_NUMPAD0)
 		{
-			// Start and stop the tile parser.
+			// Parse tiles on the screen
+			g_TilesetCreator.parseTilesInFrameBuffer();
+			g_TilesetCreator.saveTileFile();
+		}
+		else if (wparam == VK_NUMPAD1)
+		{
+			// Start the tile parser.
+			if (!g_TilesetCreator.isActive)
+				g_TilesetCreator.start();
+		}
+		else if (wparam == VK_NUMPAD9)
+		{
+			// Stop the tile parser.
 			if (g_TilesetCreator.isActive)
 				g_TilesetCreator.stop();
-			else
-				g_TilesetCreator.start();
 		}
 		else if (wparam == VK_F9)
 		{

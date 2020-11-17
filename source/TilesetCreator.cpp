@@ -3,6 +3,7 @@
 #include "Frame.h"
 #include "Memory.h"
 #include <fstream>
+#include "RemoteControl/RemoteControlManager.h"
 
 void TilesetCreator::start()
 {
@@ -19,10 +20,15 @@ void TilesetCreator::start()
 void TilesetCreator::stop()
 {
     isActive = false;
+    saveTileFile();
+}
+
+void TilesetCreator::saveTileFile()
+{
     std::fstream fsFile("Nox Tileset - Auto.data", std::ios::out | std::ios::binary);
     fsFile.write(pTilesetBuffer, PNGBUFFERSIZE);
     fsFile.close();
-    std::string msg("Stopped Tileset Creator!\nPNG is at: Nox Tileset - Auto.png\nNumber of tiles loaded: ");
+    std::string msg("Saved tile file\nPNG is at: Nox Tileset - Auto.png\nNumber of tiles loaded: ");
     msg.append(std::to_string(iInserted));
     MessageBox(g_hFrameWindow, msg.c_str(), TEXT("AppleWin Tileset"), MB_OK);
 }
@@ -33,8 +39,9 @@ void TilesetCreator::stop()
 /// </summary>
 /// <param name="pFrameBuffer">The game's framebuffer</param>
 /// <returns>Number of tiles inserted</returns>
-UINT TilesetCreator::parseTilesInFrameBuffer(const char* pFrameBuffer)
+UINT TilesetCreator::parseTilesInFrameBuffer()
 {
+    const char* pFrameBuffer = RemoteControlManager::getReorderedFramebufferBits();
     char tmpb[200] = {};
     // Get the tile ids from the region map slots given the RMAP player position
     UINT32 iPlayerRegionPos = (*MemGetMainPtr(RMAP+1) << 8) + *MemGetMainPtr(RMAP);
