@@ -45,8 +45,10 @@ public:
 	}
 	void start();
 	void stop();
+	void reset();
 	UINT parseTilesInFrameBuffer();
 	bool insertTileInTilesetBuffer(UINT32 iTileId, UINT32 iTileNumber, const char* pFrameBuffer);
+	void readTileFile();
 	void saveTileFile();
 private:
 	char* pTilesetBuffer;

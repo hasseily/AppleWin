@@ -7,24 +7,58 @@
 
 void TilesetCreator::start()
 {
+    if (isActive == true)
+        return;
     isActive = true;
+    readTileFile();
+    MessageBox(g_hFrameWindow, "Starting Tileset Creator!", TEXT("AppleWin Tileset"), MB_OK);
+}
+
+void TilesetCreator::stop()
+{
+    if (isActive == false)
+        return;
+    saveTileFile();
+    isActive = false;
+}
+
+void TilesetCreator::reset()
+{
+    if (isActive == false)
+        return;
+    if (MessageBox(g_hFrameWindow,
+        TEXT("Are you sure you want to reset the tileset creator? The tileset file will be emptied!\n\n")
+        TEXT("AppleWin Tileset Reset Warning"),
+        TEXT("Benchmarks"),
+        MB_ICONQUESTION | MB_OKCANCEL | MB_SETFOREGROUND) == IDCANCEL)
+        return;
     iInserted = 0;
     ZeroMemory(pTilesetBuffer, PNGBUFFERSIZE);
     for (UINT8 i = 0; i < UINT8_MAX; i++)
     {
         aKnownTiles[i] = 0;
     }
-    MessageBox(g_hFrameWindow, "Starting Tileset Creator!", TEXT("AppleWin Tileset"), MB_OK);
+    saveTileFile();
+    MessageBox(g_hFrameWindow, "Tileset Creator has been reset", TEXT("AppleWin Tileset"), MB_OK);
 }
 
-void TilesetCreator::stop()
+void TilesetCreator::readTileFile()
 {
-    isActive = false;
-    saveTileFile();
+    if (isActive == false)
+        return;
+    std::fstream fsFile("Nox Tileset - Auto.data", std::ios::in | std::ios::binary);
+    if (!fsFile.is_open())
+    {
+        return;
+    }
+    fsFile.read(pTilesetBuffer, PNGBUFFERSIZE);
+    fsFile.close();
 }
 
 void TilesetCreator::saveTileFile()
 {
+    if (isActive == false)
+        return;
     std::fstream fsFile("Nox Tileset - Auto.data", std::ios::out | std::ios::binary);
     fsFile.write(pTilesetBuffer, PNGBUFFERSIZE);
     fsFile.close();
@@ -41,15 +75,17 @@ void TilesetCreator::saveTileFile()
 /// <returns>Number of tiles inserted</returns>
 UINT TilesetCreator::parseTilesInFrameBuffer()
 {
+    if (isActive == false)
+        return 0;
     const char* pFrameBuffer = RemoteControlManager::getReorderedFramebufferBits();
     char tmpb[200] = {};
     // Get the tile ids from the region map slots given the RMAP player position
     UINT32 iPlayerRegionPos = (*MemGetMainPtr(RMAP+1) << 8) + *MemGetMainPtr(RMAP);
     UINT32 iTileIdLocation; // Tile Id location in main memory
     UINT32 iTileId;
-    for (UINT8 i = 1; i < FBTILESPERCOL-1; i++)
+    for (UINT8 i = 0; i < FBTILESPERCOL; i++)
     {
-        for (UINT8 j = 1; j < FBTILESPERROW-1; j++)
+        for (UINT8 j = 0; j < FBTILESPERROW; j++)
         {
             iTileIdLocation = (REGIONMAPSTART + iPlayerRegionPos) - VISIBLEORIGINOFFSET + (REGIONMAPWIDTH * i) + j;
             iTileId = *MemGetMainPtr(iTileIdLocation);
@@ -80,6 +116,8 @@ UINT TilesetCreator::parseTilesInFrameBuffer()
 
 bool TilesetCreator::insertTileInTilesetBuffer(UINT32 iTileId, UINT32 iTileNumber, const char* pFrameBuffer)
 {
+    if (isActive == false)
+        return false;
     // Calculate the source 0,0 byte to get the tile from
     UINT8 iFBRow = iTileNumber / FBTILESPERROW;
     UINT8 iFBCol = iTileNumber % FBTILESPERROW;

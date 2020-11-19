@@ -1318,11 +1318,6 @@ LRESULT CALLBACK FrameWndProc (
 	case WM_KEYDOWN:
 		KeybUpdateCtrlShiftStatus();
 
-		//if (g_TilesetCreator.isActive)
-		//{
-		//	g_TilesetCreator.parseTilesInFrameBuffer();
-		//}
-
 		// Processing is done in WM_KEYUP for: VK_F1 VK_F2 VK_F3 VK_F4 VK_F5 VK_F6 VK_F7 VK_F8
 		if ((wparam >= VK_F1) && (wparam <= VK_F8) && (buttondown == -1))
 		{
@@ -1346,6 +1341,12 @@ LRESULT CALLBACK FrameWndProc (
 			// Start the tile parser.
 			if (!g_TilesetCreator.isActive)
 				g_TilesetCreator.start();
+		}
+		else if (wparam == VK_NUMPAD5)
+		{
+			// SReset the tile parser (clear the saved tiles)
+			if (!g_TilesetCreator.isActive)
+				g_TilesetCreator.reset();
 		}
 		else if (wparam == VK_NUMPAD9)
 		{
