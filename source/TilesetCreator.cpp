@@ -62,7 +62,7 @@ void TilesetCreator::saveTileFile()
     std::fstream fsFile("Nox Tileset - Auto.data", std::ios::out | std::ios::binary);
     fsFile.write(pTilesetBuffer, PNGBUFFERSIZE);
     fsFile.close();
-    std::string msg("Saved tile file\nPNG is at: Nox Tileset - Auto.png\nNumber of tiles loaded: ");
+    std::string msg("Saved tile file\nRGBA file is at: Nox Tileset - Auto.data\nNumber of tiles loaded: ");
     msg.append(std::to_string(iInserted));
     MessageBox(g_hFrameWindow, msg.c_str(), TEXT("AppleWin Tileset"), MB_OK);
 }
