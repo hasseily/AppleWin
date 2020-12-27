@@ -1345,7 +1345,7 @@ LRESULT CALLBACK FrameWndProc (
 		else if (wparam == VK_NUMPAD5)
 		{
 			// SReset the tile parser (clear the saved tiles)
-			if (!g_TilesetCreator.isActive)
+			if (g_TilesetCreator.isActive)
 				g_TilesetCreator.reset();
 		}
 		else if (wparam == VK_NUMPAD9)

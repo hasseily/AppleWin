@@ -5,7 +5,7 @@ constexpr auto PIXELDEPTH	= 4;	// ARGB
 
 constexpr auto REGIONMAPSTART		= 0xA000;	// Start of Region Map in main memory. Ends at 0xA8FF
 constexpr auto REGIONMAPWIDTH		= 0x30;		// Width of the Region Map (it's also the height since it's square)
-constexpr auto RMAP					= 0x6D02;	// Location of RMAP value in main memory. It determines where the player is within the Region Map
+constexpr auto RMAP					= 0x6CFA;	// Location of RMAP value in main memory. It determines where the player is within the Region Map
 constexpr auto VISIBLEORIGINOFFSET	= 0xF8;		// Origin offset to substract from RMAP to where the visible Region Map starts (see "Region Map" in Overworld Map xls)
 
 // For the framebuffer
