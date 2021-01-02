@@ -26,6 +26,11 @@
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\DirectXTK12-master\DirectXTK_Desktop_2019_Win10.vcxproj">
+      <Project>{3e0e8608-cd9b-4c76-af33-29ca38f2c9f0}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{CF5A49BF-62A5-41BB-B10C-F34D556A7A45}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>

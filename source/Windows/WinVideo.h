@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Video.h"
+#include "D3DGraphics/VideoRenderer.h"
 
 class WinVideo : public Video
 {
@@ -30,6 +31,7 @@ private:
 	static BOOL CALLBACK DDEnumProc(LPGUID lpGUID, LPCTSTR lpszDesc, LPCTSTR lpszDrvName, LPVOID lpContext);
 	bool DDInit(void);
 	void DDUninit(void);
+	std::unique_ptr<VideoRenderer> g_videoRenderer;
 
 	COLORREF      customcolors[256];	// MONOCHROME is last custom color
 	HBITMAP       g_hLogoBitmap;

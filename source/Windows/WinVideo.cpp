@@ -96,6 +96,9 @@ void WinVideo::Initialize(void)
 
 	videoCreateDIBSection();
 
+	g_videoRenderer = std::make_unique<VideoRenderer>();
+	g_videoRenderer->Initialize(GetDesktopWindow(), GetFrameBufferWidth(), GetFrameBufferHeight());
+
 #if 0
 	DDInit();	// For WaitForVerticalBlank()
 #endif
@@ -103,6 +106,9 @@ void WinVideo::Initialize(void)
 
 void WinVideo::Destroy(void)
 {
+	delete &g_videoRenderer;
+	g_videoRenderer = NULL;
+
 	// DESTROY BUFFERS
 	delete [] g_pFramebufferinfo;
 	g_pFramebufferinfo = NULL;
@@ -422,6 +428,9 @@ void WinVideo::DisplayLogo(void)
 
 void WinVideo::VideoPresentScreen(void)
 {
+	g_videoRenderer->Tick();
+	return;
+
 	HDC hFrameDC = FrameGetDC();
 
 	if (hFrameDC)

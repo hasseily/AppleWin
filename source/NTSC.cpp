@@ -2100,7 +2100,7 @@ void NTSC_VideoInit( uint8_t* pFramebuffer ) // wsVideoInit
 	initChromaPhaseTables();
 	updateMonochromeTables( 0xFF, 0xFF, 0xFF );
 
-	for (int y = 0; y < (VIDEO_SCANNER_Y_DISPLAY*2); y++)
+	for (int y = 0; y < (VIDEO_SCANNER_Y_DISPLAY*2); y++)	// XXX RIK TODO: REVERT SCANLINES
 	{
 		uint32_t offset = sizeof(bgra_t) * GetVideo().GetFrameBufferWidth()
 			* ((GetVideo().GetFrameBufferHeight() - 1) - y - GetVideo().GetFrameBufferBorderHeight())

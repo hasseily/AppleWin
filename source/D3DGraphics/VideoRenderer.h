@@ -49,17 +49,6 @@ private:
     void CreateDeviceDependentResources();
     void CreateWindowSizeDependentResources();
 
-    // Vars to choose whether to display GameLink or not
-    const uint32_t m_framesDelay = 60;
-    uint32_t m_previousFrameCount;    // Last render frame count
-    UINT16 m_previousGameLinkFrameSequence;
-    bool m_useGameLink;
-
-    // Background image when GameLink isn't available
-    std::vector<uint8_t> m_bgImage;
-    uint32_t m_bgImageWidth;
-    uint32_t m_bgImageHeight;
-
     // Device resources.
     std::unique_ptr<DX::DeviceResources>    m_deviceResources;
 
