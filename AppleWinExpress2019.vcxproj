@@ -56,6 +56,14 @@
     <ClInclude Include="source\CPU.h" />
     <ClInclude Include="source\CPU\cpu6502.h" />
     <ClInclude Include="source\CPU\cpu65C02.h" />
+    <ClInclude Include="source\D3DGraphics\ATG Tool Kit\ATGColors.h" />
+    <ClInclude Include="source\D3DGraphics\ATG Tool Kit\d3dx12.h" />
+    <ClInclude Include="source\D3DGraphics\ATG Tool Kit\FindMedia.h" />
+    <ClInclude Include="source\D3DGraphics\ATG Tool Kit\ReadData.h" />
+    <ClInclude Include="source\D3DGraphics\Common\DeviceResources.h" />
+    <ClInclude Include="source\D3DGraphics\Common\StepTimer.h" />
+    <ClInclude Include="source\D3DGraphics\DXIncludes.h" />
+    <ClInclude Include="source\D3DGraphics\VideoRenderer.h" />
     <ClInclude Include="source\Debugger\Debug.h" />
     <ClInclude Include="source\Debugger\DebugDefs.h" />
     <ClInclude Include="source\Debugger\Debugger_Assembler.h" />
@@ -155,6 +163,9 @@
     <ClCompile Include="source\Configuration\PropertySheetHelper.cpp" />
     <ClCompile Include="source\Core.cpp" />
     <ClCompile Include="source\CPU.cpp" />
+    <ClCompile Include="source\D3DGraphics\Common\DeviceResources.cpp" />
+    <ClCompile Include="source\D3DGraphics\DXIncludes.cpp" />
+    <ClCompile Include="source\D3DGraphics\VideoRenderer.cpp" />
     <ClCompile Include="source\Disk2CardManager.cpp" />
     <ClCompile Include="source\FrameBase.cpp" />
     <ClCompile Include="source\RGBMonitor.cpp" />
@@ -295,6 +306,9 @@
     <None Include="source\CPU\cpu_instructions.inl" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="DirectXTK12-master\DirectXTK_Desktop_2019_Win10.vcxproj">
+      <Project>{3e0e8608-cd9b-4c76-af33-29ca38f2c9f0}</Project>
+    </ProjectReference>
     <ProjectReference Include="zip_lib\zip_lib2019.vcxproj">
       <Project>{509739e7-0af3-4c09-a1a9-f0b1bc31b39d}</Project>
     </ProjectReference>

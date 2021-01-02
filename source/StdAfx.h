@@ -42,3 +42,11 @@ typedef UINT64 uint64_t;
 #endif
 
 #define USE_SPEECH_API
+
+#include "D3DGraphics/DXIncludes.h"
+#include "D3DGraphics/VideoRenderer.h"
+
+namespace
+{
+    std::unique_ptr<VideoRenderer> g_videoRenderer;
+};

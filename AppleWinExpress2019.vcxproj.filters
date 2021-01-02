@@ -223,6 +223,15 @@
     <ClCompile Include="source\Windows\Win32Frame.cpp">
       <Filter>Source Files\Windows</Filter>
     </ClCompile>
+    <ClCompile Include="source\D3DGraphics\Common\DeviceResources.cpp">
+      <Filter>Source Files\Direct3D</Filter>
+    </ClCompile>
+    <ClCompile Include="source\D3DGraphics\DXIncludes.cpp">
+      <Filter>Source Files\Direct3D</Filter>
+    </ClCompile>
+    <ClCompile Include="source\D3DGraphics\VideoRenderer.cpp">
+      <Filter>Source Files\Direct3D</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\CommonVICE\6510core.h">
@@ -531,6 +540,30 @@
     <ClInclude Include="source\Windows\Win32Frame.h">
       <Filter>Source Files\Windows</Filter>
     </ClInclude>
+    <ClInclude Include="source\D3DGraphics\ATG Tool Kit\ATGColors.h">
+      <Filter>Source Files\Direct3D</Filter>
+    </ClInclude>
+    <ClInclude Include="source\D3DGraphics\ATG Tool Kit\d3dx12.h">
+      <Filter>Source Files\Direct3D</Filter>
+    </ClInclude>
+    <ClInclude Include="source\D3DGraphics\ATG Tool Kit\FindMedia.h">
+      <Filter>Source Files\Direct3D</Filter>
+    </ClInclude>
+    <ClInclude Include="source\D3DGraphics\ATG Tool Kit\ReadData.h">
+      <Filter>Source Files\Direct3D</Filter>
+    </ClInclude>
+    <ClInclude Include="source\D3DGraphics\Common\DeviceResources.h">
+      <Filter>Source Files\Direct3D</Filter>
+    </ClInclude>
+    <ClInclude Include="source\D3DGraphics\Common\StepTimer.h">
+      <Filter>Source Files\Direct3D</Filter>
+    </ClInclude>
+    <ClInclude Include="source\D3DGraphics\DXIncludes.h">
+      <Filter>Source Files\Direct3D</Filter>
+    </ClInclude>
+    <ClInclude Include="source\D3DGraphics\VideoRenderer.h">
+      <Filter>Source Files\Direct3D</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="resource\Applewin.bmp">
@@ -773,6 +806,9 @@
     </Filter>
     <Filter Include="Source Files\Windows">
       <UniqueIdentifier>{95d0abc3-4007-4eb0-8222-4579b565de23}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Direct3D">
+      <UniqueIdentifier>{3f01ee93-1aa4-4ec0-8e94-b228ef222e9b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
