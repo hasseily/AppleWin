@@ -540,18 +540,6 @@
     <ClInclude Include="source\Windows\Win32Frame.h">
       <Filter>Source Files\Windows</Filter>
     </ClInclude>
-    <ClInclude Include="source\D3DGraphics\ATG Tool Kit\ATGColors.h">
-      <Filter>Source Files\Direct3D</Filter>
-    </ClInclude>
-    <ClInclude Include="source\D3DGraphics\ATG Tool Kit\d3dx12.h">
-      <Filter>Source Files\Direct3D</Filter>
-    </ClInclude>
-    <ClInclude Include="source\D3DGraphics\ATG Tool Kit\FindMedia.h">
-      <Filter>Source Files\Direct3D</Filter>
-    </ClInclude>
-    <ClInclude Include="source\D3DGraphics\ATG Tool Kit\ReadData.h">
-      <Filter>Source Files\Direct3D</Filter>
-    </ClInclude>
     <ClInclude Include="source\D3DGraphics\Common\DeviceResources.h">
       <Filter>Source Files\Direct3D</Filter>
     </ClInclude>
@@ -562,6 +550,18 @@
       <Filter>Source Files\Direct3D</Filter>
     </ClInclude>
     <ClInclude Include="source\D3DGraphics\VideoRenderer.h">
+      <Filter>Source Files\Direct3D</Filter>
+    </ClInclude>
+    <ClInclude Include="source\D3DGraphics\ATGToolKit\ATGColors.h">
+      <Filter>Source Files\Direct3D</Filter>
+    </ClInclude>
+    <ClInclude Include="source\D3DGraphics\ATGToolKit\d3dx12.h">
+      <Filter>Source Files\Direct3D</Filter>
+    </ClInclude>
+    <ClInclude Include="source\D3DGraphics\ATGToolKit\FindMedia.h">
+      <Filter>Source Files\Direct3D</Filter>
+    </ClInclude>
+    <ClInclude Include="source\D3DGraphics\ATGToolKit\ReadData.h">
       <Filter>Source Files\Direct3D</Filter>
     </ClInclude>
   </ItemGroup>

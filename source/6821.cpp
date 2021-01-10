@@ -158,10 +158,6 @@ void C6821::mc6821_set_signal(/*drive_context_t *drive_context,*/ int line)
 
 void C6821::mc6821_store_internal(WORD addr, BYTE byte, unsigned int dnr)
 {
-#ifdef MC_DEBUG
-    log_debug("MC WRITE ADDR: %i DATA:%02x CLK:%i",
-              addr, byte, drive_clk[dnr]);
-#endif
 
     switch (addr) {
       case 0:	// PIA_DDRA
@@ -209,11 +205,6 @@ BYTE C6821::mc6821_read_internal(WORD addr, unsigned int dnr)
         tmp = mc6821[dnr].crb;
         break;
     }
-
-#ifdef MC_DEBUG
-    log_debug("MC READ ADDR: %i DATA:%02x CLK:%i",
-              addr, tmp, drive_clk[dnr]);
-#endif
 
     return tmp;
 }

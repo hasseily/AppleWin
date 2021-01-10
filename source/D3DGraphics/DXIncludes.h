@@ -42,7 +42,7 @@
 #include <DirectXColors.h>
 #include <wincodec.h>
 
-#include "ATG Tool Kit/d3dx12.h"
+#include "ATGToolKit/d3dx12.h"
 
 #include <algorithm>
 #include <exception>

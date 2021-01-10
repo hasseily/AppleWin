@@ -2,7 +2,12 @@
 
 #include "D3DGraphics/Common/DeviceResources.h"
 #include "D3DGraphics/Common/StepTimer.h"
-#include "D3DGraphics/ATG Tool Kit/d3dx12.h"
+#include "D3DGraphics/ATGToolKit/d3dx12.h"
+#include "D3DGraphics/ATGToolKit/ATGColors.h"
+#include "D3DGraphics/ATGToolKit/ReadData.h"
+#include "D3DGraphics/ATGToolKit/FindMedia.h"
+#include "Video.h"
+#include "Interface.h"
 
 class VideoRenderer final : public DX::IDeviceNotify
 {
@@ -38,6 +43,7 @@ public:
 
     // Properties
     void GetDefaultSize(int& width, int& height) const;
+
 
 private:
 

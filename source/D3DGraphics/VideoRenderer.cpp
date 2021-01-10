@@ -1,11 +1,10 @@
+#include "StdAfx.h"
 #include "D3DGraphics/DXIncludes.h"
 #include "VideoRenderer.h"
 
-#include "D3DGraphics/ATG Tool Kit/ATGColors.h"
-#include "D3DGraphics/ATG Tool Kit/ReadData.h"
-#include "D3DGraphics/ATG Tool Kit/FindMedia.h"
+#include "Video.h"
+#include "Windows/WinVideo.h"
 
-#include <Interface.h>
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
@@ -112,9 +111,9 @@ void VideoRenderer::Initialize(HWND window, int width, int height)
     CreateWindowSizeDependentResources();
 }
 
-#pragma region Activate GameLink
+#pragma region Select framebuffer
 
-// Select which texture to show: The default background or the gamelink data
+// Select the texture that is the apple 2 screen framebuffer
 D3D12_RESOURCE_DESC VideoRenderer::ChooseTexture()
 {
     D3D12_RESOURCE_DESC txtDesc = {};
@@ -123,10 +122,9 @@ D3D12_RESOURCE_DESC VideoRenderer::ChooseTexture()
     txtDesc.SampleDesc.Count = 1;
     txtDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
-    auto vid = GetVideo();
-    txtDesc.Width = vid.GetFrameBufferWidth();
-    txtDesc.Height = vid.GetFrameBufferHeight();
-    g_textureData.pData = vid.GetFrameBuffer();
+    txtDesc.Width = GetVideo().GetFrameBufferWidth();
+    txtDesc.Height = GetVideo().GetFrameBufferHeight();;
+    g_textureData.pData = GetVideo().GetFrameBuffer();
     g_textureData.SlicePitch = static_cast<LONG_PTR>(txtDesc.Width * txtDesc.Height * sizeof(uint32_t));
     g_textureData.RowPitch = static_cast<LONG_PTR>(txtDesc.Width * sizeof(uint32_t));
     return txtDesc;
@@ -282,6 +280,7 @@ void VideoRenderer::GetDefaultSize(int& width, int& height) const
     width = 1280;
     height = 720;
 }
+
 #pragma endregion
 
 #pragma region Direct3D Resources
