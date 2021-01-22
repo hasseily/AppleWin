@@ -235,6 +235,9 @@ VideoStyle_e GetVideoStyle(void);
 void SetVideoStyle(VideoStyle_e newVideoStyle);
 bool IsVideoStyle(VideoStyle_e mask);
 
+void SetHeadlessMode(bool b);
+bool IsHeadlessMode();
+
 VideoRefreshRate_e GetVideoRefreshRate(void);
 void SetVideoRefreshRate(VideoRefreshRate_e rate);
 

@@ -93,6 +93,8 @@ uint32_t  g_uVideoMode     = VF_TEXT; // Current Video Mode (this is the last se
 DWORD     g_eVideoType     = VT_DEFAULT;
 static VideoStyle_e g_eVideoStyle = VS_HALF_SCANLINES;
 
+static bool g_bHeadless = false;  // Headless Mode
+
 static bool g_bVideoScannerNTSC = true;  // NTSC video scanning (or PAL)
 
 static LPDIRECTDRAW g_lpDD = NULL;
@@ -450,7 +452,7 @@ void VideoDisplayLogo ()
 	SetBkMode(hFrameDC,TRANSPARENT);
 
 	TCHAR szVersion[ 64 ];
-	StringCbPrintf(szVersion, 64, "Version %s", VERSIONSTRING);
+	StringCbPrintf(szVersion, 64, "Version %s - COMPANION", VERSIONSTRING);
 	int xoff = GetFullScreenOffsetX(), yoff = GetFullScreenOffsetY();
 
 #define  DRAWVERSION(x,y,c)                 \
@@ -582,7 +584,9 @@ void VideoRefreshScreen(uint32_t uRedrawWholeScreenVideoMode /* =0*/, bool bRedr
 		if (g_nAppMode == MODE_DEBUG || g_nAppMode == MODE_PAUSED)
 			NTSC_VideoRedrawWholeScreen();
 	}
-
+	g_RemoteControlMgr.sendOutput(g_pFramebufferinfo, g_pFramebufferbits);	// RIK
+	if (g_bHeadless)	// Oooh headless mode, we don't write video to the frame
+		return;
 	HDC hFrameDC = FrameGetDC();
 
 	if (hFrameDC)
@@ -606,7 +610,6 @@ void VideoRefreshScreen(uint32_t uRedrawWholeScreenVideoMode /* =0*/, bool bRedr
 			SRCCOPY);
 	}
 
-	g_RemoteControlMgr.sendOutput(g_pFramebufferinfo, g_pFramebufferbits);	// RIK
 
 #ifdef NO_DIRECT_X
 #else
@@ -1410,6 +1413,20 @@ bool IsVideoStyle(VideoStyle_e mask)
 {
 	return (g_eVideoStyle & mask) != 0;
 }
+
+//===========================================================================
+
+bool IsHeadlessMode(void)
+{
+	return g_bHeadless;
+}
+
+void SetHeadlessMode(bool b)
+{
+	g_bHeadless = b;
+}
+
+//===========================================================================
 
 //===========================================================================
 

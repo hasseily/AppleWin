@@ -67,7 +67,7 @@ static BOOL CALLBACK DlgProcAbout(HWND hWnd, UINT message, WPARAM wparam, LPARAM
 			SendDlgItemMessage(hWnd, IDC_APPLEWIN_ICON, STM_SETIMAGE, IMAGE_ICON, (LPARAM)hIcon);
 
 			TCHAR szAppleWinVersion[50];
-			StringCbPrintf(szAppleWinVersion, 50, "AppleWin v%s", VERSIONSTRING);
+			StringCbPrintf(szAppleWinVersion, 50, "AppleWin v%s - COMPANION", VERSIONSTRING);
 			SendDlgItemMessage(hWnd, IDC_APPLEWIN_VERSION, WM_SETTEXT, 0, (LPARAM)szAppleWinVersion);
 
 			SendDlgItemMessage(hWnd, IDC_GPL_TEXT, WM_SETTEXT, 0, (LPARAM)g_szGPL);

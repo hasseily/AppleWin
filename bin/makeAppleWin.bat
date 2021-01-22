@@ -14,8 +14,8 @@
 @COPY /Y "%APPLEWIN_ROOT%\Release\AppleWin.exe" "%~1"
 @COPY /Y "%APPLEWIN_ROOT%\Release\HookFilter.dll" "%~1"
 CD "%~1"
-"C:\Program Files (x86)\7-Zip\7z.exe" a ..\AppleWin"%~1".zip *
-"C:\Program Files (x86)\7-Zip\7z.exe" a ..\AppleWin"%~1"-PDB.zip "%APPLEWIN_ROOT%\Release\AppleWin.pdb" "%APPLEWIN_ROOT%\Release\HookFilter.pdb"
+"C:\Program Files\7-Zip\7z.exe" a ..\AppleWin"%~1".zip *
+"C:\Program Files\7-Zip\7z.exe" a ..\AppleWin"%~1"-PDB.zip "%APPLEWIN_ROOT%\Release\AppleWin.pdb" "%APPLEWIN_ROOT%\Release\HookFilter.pdb"
 CD ..
 @GOTO end
 

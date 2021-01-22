@@ -126,6 +126,7 @@ BOOL CPageConfig::DlgProcInternal(HWND hWnd, UINT message, WPARAM wparam, LPARAM
 		case IDC_CHECK_50HZ_VIDEO:
 		case IDC_CHECK_REMOTECONTROL:		// RIK
 		case IDC_CHECK_RC_TRACKONLY:		// RIK
+		case IDC_CHECK_RC_HEADLESS:			// RIK
 			// Checked in DlgOK()
 			break;
 
@@ -223,6 +224,7 @@ BOOL CPageConfig::DlgProcInternal(HWND hWnd, UINT message, WPARAM wparam, LPARAM
 			CheckDlgButton(hWnd, IDC_CHECK_50HZ_VIDEO, (GetVideoRefreshRate() == VR_50HZ) ? BST_CHECKED : BST_UNCHECKED);
 			CheckDlgButton(hWnd, IDC_CHECK_REMOTECONTROL, (RemoteControlManager::isRemoteControlEnabled()) ? BST_CHECKED : BST_UNCHECKED);		// RIK
 			CheckDlgButton(hWnd, IDC_CHECK_RC_TRACKONLY, (RemoteControlManager::isTrackOnlyEnabled()) ? BST_CHECKED : BST_UNCHECKED);		// RIK
+			CheckDlgButton(hWnd, IDC_CHECK_RC_HEADLESS, (IsHeadlessMode()) ? BST_CHECKED : BST_UNCHECKED);		// RIK
 
 			SendDlgItemMessage(hWnd,IDC_SLIDER_CPU_SPEED,TBM_SETRANGE,1,MAKELONG(0,40));
 			SendDlgItemMessage(hWnd,IDC_SLIDER_CPU_SPEED,TBM_SETPAGESIZE,0,5);
@@ -329,6 +331,7 @@ void CPageConfig::DlgOK(HWND hWnd)
 		RemoteControlManager::setTrackOnlyEnabled(isnewRCTC);
 		bVideoReinit = true;
 	}
+	SetHeadlessMode(IsDlgButtonChecked(hWnd, IDC_CHECK_RC_HEADLESS));
 	// RIK END
 
 	if (bVideoReinit)
