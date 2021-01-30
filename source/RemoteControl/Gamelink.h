@@ -53,15 +53,21 @@ namespace GameLink
 		UINT8 ready;
 		UINT8 mouse_btn;
 		UINT keyb_state[ 8 ];
+
+		enum { READY_NO = 0 };					// Input not ready
+		enum { READY_GC = 1 };					// Input from GC
+		enum { READY_OTHER = 17 };				// Input from other app
 	};
 
 	//
 	// sSharedMMapPeek_R2
 	//
-	// Memory reading interface.
-	//
+	// Memory reading interface, an obsolete way of requesting RAM address values.
+	// This is unnecessary now for reading RAM as the RAM is completely mapped at the end of the SHM
+	// However we can use this interface to request processor registers!
 	struct sSharedMMapPeek_R2
 	{
+		enum { PEEK_SPECIAL_PC = UINT_MAX - 1 };	// Set this address to request program counter
 		enum { PEEK_LIMIT = 16 * 1024 };
 
 		UINT addr_count;
@@ -128,8 +134,10 @@ namespace GameLink
 		sSharedMMapBuffer_R1 buf_tohost;
 		sSharedMMapAudio_R1 audio;
 
-		// added for protocol v4
+		// added for protocol v5
 		UINT ram_size;
+
+		sSharedMMapInput_R2 input_other;	// A second app's input channel so it isn't clobbered by GC
 	};
 
 #pragma pack( pop )
@@ -171,6 +179,8 @@ namespace GameLink
 	extern void ExecTerminalMech(sSharedMMapBuffer_R1* p_mechbuf);
 
 	extern void InitTerminal();
+
+	extern bool GetVideoNativeFormat();
 
 }; // namespace GameLink
 

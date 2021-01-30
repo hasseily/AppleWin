@@ -50,7 +50,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 #define UNKNOWN_VOLUME_NAME "Unknown Volume"
-#define GAMELINK_IVK_HACK 17
 
  // The GameLink I/O structure
 struct Gamelink_Block {
@@ -81,6 +80,8 @@ UINT iCurrentTicks;						// Used to check the repeat interval
 UINT8 *pReorderedFramebufferbits = new UINT8[GetFrameBufferWidth() * GetFrameBufferHeight() * sizeof(bgra_t)]; // the frame realigned properly
 UINT8 iOldVolumeLevel;
 static std::unordered_set<UINT8> exclusionSet;		// list of VK codes that will not be passed through to Applewin
+
+static bool bVideoNativeFormat = false;
 
 bool bHardDiskIsLoaded = false;			// If HD is loaded, use it instead of floppy
 bool bFloppyIsLoaded = false;
@@ -288,11 +289,10 @@ void RemoteControlManager::getInput()
 
 
 		// -- Keyboard input
-		if (g_gamelink.input.ready == GAMELINK_IVK_HACK)
+		if (g_gamelink.input.ready == GameLink::sSharedMMapInput_R2::READY_OTHER)
 		{
 			// Hack for AppleWin companion to provide directly iVK Codes
 			// No need to do anything special, we grab the iVK and lparam directly
-			// The lparam is a long that's split into 2 ints from the keyb_state.
 			// Yeah it's a hack.
 
 			UINT iVK_Code = g_gamelink.input.keyb_state[0];
@@ -410,34 +410,45 @@ void RemoteControlManager::sendOutput(LPBITMAPINFO g_pFramebufferinfo, UINT8 *g_
 			return;
 		}
 
-		UINT fbSize = GetFrameBufferWidth() * GetFrameBufferHeight() * sizeof(bgra_t);
-		ZeroMemory(pReorderedFramebufferbits, fbSize);
-
-		if (g_pFramebufferbits != NULL)
-		{
-			reverseScanlines
-			(
-				pReorderedFramebufferbits,
-				g_pFramebufferbits,
-				g_pFramebufferinfo->bmiHeader.biWidth,
-				g_pFramebufferinfo->bmiHeader.biHeight,
-				g_pFramebufferinfo->bmiHeader.biBitCount / 8
-			);
-		}
-
-
 		CMouseInterface* pMouseCard = GetCardMgr().GetMouseCard();
 		// Do not use pMouseCard->isEnabled() or equivalent, since it'll return false
 		// when Applewin is not in focus, and that's exactly what it'll be.
 		g_gamelink.want_mouse = (bool)pMouseCard;
 		// TODO: only send the framebuffer out when not in trackonly_mode
-		GameLink::Out(
-			(UINT16)g_pFramebufferinfo->bmiHeader.biWidth,
-			(UINT16)g_pFramebufferinfo->bmiHeader.biHeight,
-			1.0,								// image ratio
-			g_gamelink.want_mouse,
-			(const UINT8*)pReorderedFramebufferbits,
-			MemGetBankPtr(0));					// Main memory pointer
+
+		if (g_pFramebufferbits != NULL)
+		{
+			if (GameLink::GetVideoNativeFormat() == true)
+			{
+				GameLink::Out(
+					(UINT16)g_pFramebufferinfo->bmiHeader.biWidth,
+					(UINT16)g_pFramebufferinfo->bmiHeader.biHeight,
+					1.0,								// image ratio
+					g_gamelink.want_mouse,
+					(const UINT8*)g_pFramebufferbits,
+					MemGetBankPtr(0));					// Main memory pointer
+			}
+			else
+			{
+				UINT fbSize = GetFrameBufferWidth() * GetFrameBufferHeight() * sizeof(bgra_t);
+				ZeroMemory(pReorderedFramebufferbits, fbSize);
+				reverseScanlines
+				(
+					pReorderedFramebufferbits,
+					g_pFramebufferbits,
+					g_pFramebufferinfo->bmiHeader.biWidth,
+					g_pFramebufferinfo->bmiHeader.biHeight,
+					g_pFramebufferinfo->bmiHeader.biBitCount / 8
+				);
+				GameLink::Out(
+					(UINT16)g_pFramebufferinfo->bmiHeader.biWidth,
+					(UINT16)g_pFramebufferinfo->bmiHeader.biHeight,
+					1.0,								// image ratio
+					g_gamelink.want_mouse,
+					(const UINT8*)pReorderedFramebufferbits,
+					MemGetBankPtr(0));					// Main memory pointer
+			}
+		}
 	}
 }
 

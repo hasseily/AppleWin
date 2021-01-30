@@ -24,6 +24,7 @@
 #include "Gamelink.h"
 #include "Applewin.h"
 #include "Frame.h"
+#include "CPU.h"
 
 //------------------------------------------------------------------------------
 // Local Definitions
@@ -47,6 +48,8 @@ static bool g_bEnableGamelink;
 static bool g_bEnableTrackOnly;
 
 static UINT g_membase_size;
+
+static bool g_use_native_format = false;
 
 static GameLink::sSharedMemoryMap_R4* g_p_shared_memory;
 static GameLink::sSharedMMapBuffer_R1* g_p_outbuf;
@@ -77,10 +80,14 @@ static void shared_memory_init()
 	// reset input
 	g_p_shared_memory->input.mouse_dx = 0;
 	g_p_shared_memory->input.mouse_dy = 0;
+	g_p_shared_memory->input_other.mouse_dx = 0;
+	g_p_shared_memory->input_other.mouse_dy = 0;
 
 	g_p_shared_memory->input.mouse_btn = 0;
+	g_p_shared_memory->input_other.mouse_btn = 0;
 	for ( int i = 0; i < 8; ++i ) {
-		g_p_shared_memory->input.keyb_state[ i ] = 0;
+		g_p_shared_memory->input.keyb_state[i] = 0;
+		g_p_shared_memory->input_other.keyb_state[i] = 0;
 	}
 
 	// reset peek interface
@@ -245,6 +252,14 @@ static void proc_mech(GameLink::sSharedMMapBuffer_R1* cmd, UINT16 payload)
 	{
 		PostMessageW(g_hFrameWindow, WM_DESTROY, 0, 0);
 	}
+	else if (strcmp(com, ":videonative") == 0)
+	{
+		g_use_native_format = true;
+	}
+	else if (strcmp(com, ":videodirectx") == 0)
+	{
+		g_use_native_format = false;
+	}
 }
 
 //==============================================================================
@@ -380,6 +395,7 @@ void GameLink::SetProgramInfo(const std::string name, UINT i1, UINT i2, UINT i3,
 //
 // Incoming information from the external program via the Gamelink API
 // Copy it to g_gamelink and let Applewin know we're ready
+// The GC input takes precedence over the other input
 
 int GameLink::In( GameLink::sSharedMMapInput_R2* p_input,
 				  GameLink::sSharedMMapAudio_R1* p_audio )
@@ -395,23 +411,35 @@ int GameLink::In( GameLink::sSharedMMapInput_R2* p_input,
 		}
 		else
 		{
-			if ( g_p_shared_memory->input.ready )
+			if (g_p_shared_memory->input_other.ready)
 			{
 				// Copy client input out of shared memory
-				memcpy( p_input, &( g_p_shared_memory->input ), sizeof( sSharedMMapInput_R2 ) );
+				memcpy(p_input, &(g_p_shared_memory->input_other), sizeof(sSharedMMapInput_R2));
+
+				// Clear remote delta, prevent counting more than once.
+				g_p_shared_memory->input_other.mouse_dx = 0;
+				g_p_shared_memory->input_other.mouse_dy = 0;
+
+				ready = g_p_shared_memory->input_other.ready; // Remember the ready flag
+				g_p_shared_memory->input_other.ready = 0;
+			}
+			else if (g_p_shared_memory->input.ready)
+			{
+				// Copy client input out of shared memory
+				memcpy(p_input, &(g_p_shared_memory->input), sizeof(sSharedMMapInput_R2));
 
 				// Clear remote delta, prevent counting more than once.
 				g_p_shared_memory->input.mouse_dx = 0;
 				g_p_shared_memory->input.mouse_dy = 0;
 
+				ready = 1; // Got some input, set ready flag to show it's GC input
 				g_p_shared_memory->input.ready = 0;
-
-				ready = 1; // Got some input
 			}
 
-			if ( g_p_shared_memory->audio.master_vol_l <= 100 )
+
+			if (g_p_shared_memory->audio.master_vol_l <= 100)
 				p_audio->master_vol_l = g_p_shared_memory->audio.master_vol_l;
-			if ( g_p_shared_memory->audio.master_vol_r <= 100 )
+			if (g_p_shared_memory->audio.master_vol_r <= 100)
 				p_audio->master_vol_r = g_p_shared_memory->audio.master_vol_r;
 		}
 	}
@@ -537,6 +565,10 @@ void GameLink::Out( const UINT16 frame_width,
 				{
 					data = p_sysmem[ address ]; // read data
 				}
+				else if (address == sSharedMMapPeek_R2::PEEK_SPECIAL_PC)
+				{
+					data = regs.pc;
+				}
 				else
 				{
 					data = 0; // <-- safe
@@ -565,6 +597,11 @@ void GameLink::Out( const UINT16 frame_width,
 void GameLink::InitTerminal()
 {
 	g_p_outbuf = 0;
+}
+
+bool GameLink::GetVideoNativeFormat()
+{
+	return g_use_native_format;
 }
 
 void GameLink::ExecTerminalMech(GameLink::sSharedMMapBuffer_R1* p_procbuf)
