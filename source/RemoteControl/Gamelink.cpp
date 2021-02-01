@@ -25,6 +25,7 @@
 #include "Applewin.h"
 #include "Frame.h"
 #include "CPU.h"
+#include <algorithm>
 
 //------------------------------------------------------------------------------
 // Local Definitions
@@ -44,7 +45,7 @@ using namespace GameLink;
 static HANDLE g_mutex_handle;
 static HANDLE g_mmap_handle;
 
-static bool g_bEnableGamelink;
+static bool g_bEnableGamelink = true;		// default to true
 static bool g_bEnableTrackOnly;
 
 static UINT g_membase_size;
@@ -111,6 +112,9 @@ static void shared_memory_init()
 
 	// RAM
 	g_p_shared_memory->ram_size = g_membase_size;
+
+	// Log
+	g_p_shared_memory->buf_printstr.string_size = 0;
 }
 
 //
@@ -596,6 +600,30 @@ void GameLink::Out( const UINT16 frame_width,
 			ExecTerminalMech( &proc_mech_buffer );
 	}
 
+}
+
+void GameLink::PrintStringToAutolog(const std::string s_logstr)
+{
+	if (g_p_shared_memory)
+	{
+		sSharedMMapPrintBuffer_R1* buf = &g_p_shared_memory->buf_printstr;
+		if (buf->string_size == 0)
+		{
+			// buffer has been read and cleared by the companion app
+			// we can make a new one
+			if (memcpy_s(buf->data, buf->PRINTBUFFER_SIZE, s_logstr.c_str(), s_logstr.size()))
+				return;
+			// LogOutput("buffer: %s\n", buf->data);
+		}
+		else
+		{
+			// It's not cleared, we need to append to it
+			if (memcpy_s(buf->data + buf->string_size, buf->PRINTBUFFER_SIZE - buf->string_size, s_logstr.c_str(), s_logstr.size()))
+				return;
+		}
+		buf->string_size += s_logstr.size();
+		buf->data[buf->string_size] = '\0';
+	}
 }
 
 void GameLink::InitTerminal()

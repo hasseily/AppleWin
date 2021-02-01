@@ -107,6 +107,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "YamlHelper.h"
 
+// Special for Nox Archaist
+#include "RemoteControl/Gamelink.h"
+#define PC_PRINTSTR		0x7aa1		// program counter of PRINT.STR routine
+
 #define LOG_IRQ_TAKEN_AND_RTI 0
 
 // 6502 Accumulator Bit Flags
@@ -371,6 +375,23 @@ static __forceinline void Fetch(BYTE& iOpcode, ULONG uExecutedCycles)
 		CaptureCOUT();
 #endif
 
+	if ((PC == PC_PRINTSTR) && (regs.a == 0x05))	// A==0x05 is printing to the convo area
+	{
+		UINT8 pStrLo = *(mem + 0xfc);	// or e4
+		UINT8 pStrHi = *(mem + 0xfd);	// or e5
+		UINT8* strHiAscii = (UINT8 *)(mem + ((UINT16)pStrHi << 8) + pStrLo);
+		std::string logstr;
+		// convert from High ASCII to regular ASCII
+		for (size_t i = 0; i < UINT16_MAX; i++)
+		{
+			if (*(strHiAscii + i) == '\0')
+			{
+				break;
+			}
+			logstr.append(1, (*(strHiAscii + i) - 0x80));
+		}
+		GameLink::PrintStringToAutolog(logstr);
+	}
 	regs.pc++;
 }
 

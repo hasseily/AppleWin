@@ -90,6 +90,19 @@ namespace GameLink
 	};
 
 	//
+	// sSharedMMapBuffer_R1
+	//
+	// Buffer for printing to autolog
+	//
+	struct sSharedMMapPrintBuffer_R1
+	{
+		enum { PRINTBUFFER_SIZE = (2 * 1024) };
+
+		UINT16 string_size;
+		UINT8 data[PRINTBUFFER_SIZE];
+	};
+
+	//
 	// sSharedMMapAudio_R1
 	//
 	// Audio control interface.
@@ -139,6 +152,7 @@ namespace GameLink
 		UINT ram_size;
 
 		sSharedMMapInput_R2 input_other;	// A second app's input channel so it isn't clobbered by GC
+		sSharedMMapPrintBuffer_R1 buf_printstr;	// A buffer that sends a string to display in the Companion autolog
 	};
 
 #pragma pack( pop )
@@ -172,6 +186,8 @@ namespace GameLink
 					 const bool need_mouse,
 					 const UINT8* p_frame,
 					 const UINT8* p_sysmem );
+
+	extern void PrintStringToAutolog(const std::string s_logstr);
 
 	extern void ExecTerminal(sSharedMMapBuffer_R1* p_inbuf,
 		sSharedMMapBuffer_R1* p_outbuf,
