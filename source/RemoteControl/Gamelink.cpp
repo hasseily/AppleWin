@@ -621,7 +621,7 @@ void GameLink::PrintStringToAutolog(const std::string s_logstr)
 			if (memcpy_s(buf->data + buf->string_size, buf->PRINTBUFFER_SIZE - buf->string_size, s_logstr.c_str(), s_logstr.size()))
 				return;
 		}
-		buf->string_size += s_logstr.size();
+		buf->string_size += (UINT16)s_logstr.size();
 		buf->data[buf->string_size] = '\0';
 	}
 }
