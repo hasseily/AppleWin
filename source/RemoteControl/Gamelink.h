@@ -67,7 +67,8 @@ namespace GameLink
 	// However we can use this interface to request processor registers!
 	struct sSharedMMapPeek_R2
 	{
-		enum { PEEK_SPECIAL_PC = UINT_MAX - 1 };	// Set this address to request program counter
+		enum { PEEK_SPECIAL_PC_H = UINT_MAX - 1 };	// Set this address to request program counter high byte
+		enum { PEEK_SPECIAL_PC_L = UINT_MAX - 2 };	// Set this address to request program counter low byte
 		enum { PEEK_LIMIT = 16 * 1024 };
 
 		UINT addr_count;

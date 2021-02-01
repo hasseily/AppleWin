@@ -565,9 +565,13 @@ void GameLink::Out( const UINT16 frame_width,
 				{
 					data = p_sysmem[ address ]; // read data
 				}
-				else if (address == sSharedMMapPeek_R2::PEEK_SPECIAL_PC)
+				else if (address == sSharedMMapPeek_R2::PEEK_SPECIAL_PC_L)
 				{
-					data = regs.pc;
+					data = (UINT8)regs.pc;
+				}
+				else if (address == sSharedMMapPeek_R2::PEEK_SPECIAL_PC_H)
+				{
+					data = (UINT8)(regs.pc >> 8);
 				}
 				else
 				{
