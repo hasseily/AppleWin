@@ -55,7 +55,7 @@ BOOL RegLoadString (LPCTSTR section, LPCTSTR key, BOOL peruser, LPTSTR buffer, D
 		return _ini::RegLoadString(section, key, peruser, buffer, chars);
 
 	TCHAR fullkeyname[256];
-	StringCbPrintf(fullkeyname, 256, TEXT("Software\\AppleWin\\CurrentVersion\\%s"), section);
+	StringCbPrintf(fullkeyname, 256, TEXT("Software\\AppleWinNox\\CurrentVersion\\%s"), section);
 
 	BOOL success = FALSE;
 	HKEY keyhandle;
@@ -114,7 +114,7 @@ void RegSaveString (LPCTSTR section, LPCTSTR key, BOOL peruser, const std::strin
 		return _ini::RegSaveString(section, key, peruser, buffer);
 
 	TCHAR fullkeyname[256];
-	StringCbPrintf(fullkeyname, 256, TEXT("Software\\AppleWin\\CurrentVersion\\%s"), section);
+	StringCbPrintf(fullkeyname, 256, TEXT("Software\\AppleWinNox\\CurrentVersion\\%s"), section);
 
 	HKEY  keyhandle;
 	DWORD disposition;
