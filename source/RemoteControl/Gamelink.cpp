@@ -519,7 +519,7 @@ void GameLink::Out( const UINT16 frame_width,
 	proc_mech_buffer.payload = 0;
 
 	DWORD mutex_result;
-	mutex_result = WaitForSingleObject( g_mutex_handle, INFINITE );
+	mutex_result = WaitForSingleObject( g_mutex_handle, 3000 );
 	if ( mutex_result == WAIT_OBJECT_0 )
 
 	{
