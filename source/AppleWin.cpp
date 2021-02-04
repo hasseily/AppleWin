@@ -1366,7 +1366,7 @@ struct CmdLine
 		rgbCard = RGB_Videocard_e::Apple;
 		rgbCardForegroundColor = 15;
 		rgbCardBackgroundColor = 0;
-		bRemoteControlEnabled = 0;
+		bRemoteControlEnabled = 1;
 		bRCTrackOnlyEnabled = 0;
 
 		for (UINT i = 0; i < NUM_SLOTS; i++)
@@ -1486,6 +1486,11 @@ static bool ProcessCmdLine(LPSTR lpCmdLine)
 {
 	const std::string strCmdLine(lpCmdLine);		// Keep a copy for log ouput
 	std::string strUnsupported;
+
+	// default to HD enabled and mockingboard for Nox
+	GetCardMgr().Insert(SLOT4, CT_MockingboardC);
+	GetCardMgr().Insert(SLOT5, CT_MockingboardC);
+	HD_SetEnabled(true);
 
 	// If 1st param looks like an abs pathname then assume that an associated filetype has been double-clicked
 	// NB. Handled by WM_DDE_INITIATE & WM_DDE_EXECUTE msgs

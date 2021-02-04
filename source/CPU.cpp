@@ -107,9 +107,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "YamlHelper.h"
 
-// Special for Nox Archaist
+// Special for Nox Archaist window logging
 #include "RemoteControl/Gamelink.h"
-#define PC_PRINTSTR		0x7aa1		// program counter of PRINT.STR routine
+#define PC_PRINTSTR			0x7aa1		// program counter of PRINT.STR routine
+#define A_PRINT_RIGHT		0x05		// A register's value for printing to right scroll area (where the conversations are)
+#define PC_INITIATE_COMBAT 0x159f		// when combat routine starts
+#define PC_END_COMBAT		0x15eb		// when combat routine ends (don't log during combat)
+static bool b_print_suppress = false;	// bool for tracking when we're in combat and we want to suppress printing
 
 #define LOG_IRQ_TAKEN_AND_RTI 0
 
@@ -375,16 +379,20 @@ static __forceinline void Fetch(BYTE& iOpcode, ULONG uExecutedCycles)
 		CaptureCOUT();
 #endif
 
-	if ((PC == PC_PRINTSTR) && (regs.a == 0x05))	// A==0x05 is printing to the convo area
+	if (PC == PC_INITIATE_COMBAT)
+		b_print_suppress = true;
+	if (PC == PC_END_COMBAT)
+		b_print_suppress = false;
+	if ((PC == PC_PRINTSTR) && (regs.a == A_PRINT_RIGHT) && !b_print_suppress)
 	{
 		UINT8 pStrLo = *(mem + 0xfc);	// or e4
 		UINT8 pStrHi = *(mem + 0xfd);	// or e5
 		UINT8* strHiAscii = (UINT8 *)(mem + ((UINT16)pStrHi << 8) + pStrLo);
 		std::string logstr;
 		// convert from High ASCII to regular ASCII
-		for (size_t i = 0; i < UINT16_MAX; i++)
+		for (size_t i = 0; i < regs.x; i++)		// registry x has the string length
 		{
-			if (*(strHiAscii + i) == '\0')
+			if (*(strHiAscii + i) == '\0')		// just in case
 			{
 				break;
 			}
