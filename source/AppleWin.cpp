@@ -1367,6 +1367,7 @@ struct CmdLine
 		rgbCardForegroundColor = 15;
 		rgbCardBackgroundColor = 0;
 		bRemoteControlEnabled = 1;
+		bHeadlessEnabled = 0;
 		bRCTrackOnlyEnabled = 0;
 
 		for (UINT i = 0; i < NUM_SLOTS; i++)
@@ -1407,6 +1408,7 @@ struct CmdLine
 	int rgbCardBackgroundColor;
 	std::string strCurrentDir;
 	bool bRemoteControlEnabled;
+	bool bHeadlessEnabled;
 	bool bRCTrackOnlyEnabled;
 };
 
@@ -1822,6 +1824,12 @@ static bool ProcessCmdLine(LPSTR lpCmdLine)
 		{
 			g_cmdLine.bRCTrackOnlyEnabled = true;
 		}
+		else if (strcmp(lpCmdLine, "-remote-control-headless") == 0)	// Activate Remote Control, + Headless
+		{
+		g_cmdLine.bRemoteControlEnabled = true;
+		g_cmdLine.bHeadlessEnabled = true;
+
+		}
 		// RIK END
 		else if (strcmp(lpCmdLine, "-screenshot-and-exit") == 0)	// GH#616: For testing - Use in combination with -load-state
 		{
@@ -2087,6 +2095,11 @@ static void RepeatInitialization(void)
 		if (g_cmdLine.bRemoteControlEnabled)
 		{
 			g_RemoteControlMgr.setRemoteControlEnabled(true);
+		}
+
+		if (g_cmdLine.bHeadlessEnabled)
+		{
+			SetHeadlessMode(true);
 		}
 
 		if (g_cmdLine.bRCTrackOnlyEnabled)
