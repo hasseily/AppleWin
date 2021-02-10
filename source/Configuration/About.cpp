@@ -67,7 +67,7 @@ static INT_PTR CALLBACK DlgProcAbout(HWND hWnd, UINT message, WPARAM wparam, LPA
 			SendDlgItemMessage(hWnd, IDC_APPLEWIN_ICON, STM_SETIMAGE, IMAGE_ICON, (LPARAM)hIcon);
 
 			TCHAR szAppleWinVersion[50];
-			StringCbPrintf(szAppleWinVersion, 50, "AppleWin v%s - Nox Archaist 1.3", VERSIONSTRING);
+			StringCbPrintf(szAppleWinVersion, 50, "AppleWin v%s - Nox Archaist 1.4", VERSIONSTRING);
 			SendDlgItemMessage(hWnd, IDC_APPLEWIN_VERSION, WM_SETTEXT, 0, (LPARAM)szAppleWinVersion);
 
 			SendDlgItemMessage(hWnd, IDC_GPL_TEXT, WM_SETTEXT, 0, (LPARAM)g_szGPL);

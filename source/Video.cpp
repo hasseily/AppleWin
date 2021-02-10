@@ -452,7 +452,7 @@ void VideoDisplayLogo ()
 	SetBkMode(hFrameDC,TRANSPARENT);
 
 	TCHAR szVersion[ 64 ];
-	StringCbPrintf(szVersion, 64, "Version %s - Nox Archaist 1.3", VERSIONSTRING);
+	StringCbPrintf(szVersion, 64, "Version %s - Nox Archaist 1.4", VERSIONSTRING);
 	int xoff = GetFullScreenOffsetX(), yoff = GetFullScreenOffsetY();
 
 #define  DRAWVERSION(x,y,c)                 \

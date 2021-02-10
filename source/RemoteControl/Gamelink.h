@@ -148,11 +148,16 @@ namespace GameLink
 		sSharedMMapBuffer_R1 buf_tohost;
 		sSharedMMapAudio_R1 audio;
 
-		// added for protocol v5
+		// added for protocol v4
 		UINT ram_size;
+	};
 
-		sSharedMMapInput_R2 input_other;	// A second app's input channel so it isn't clobbered by GC
+	struct sSharedMMapCompanion_R1
+	{
+		UINT8 version; // = PROTOCOL_VER
+		sSharedMMapInput_R2 input;				// Companion's input channel so it isn't clobbered by GC
 		sSharedMMapPrintBuffer_R1 buf_printstr;	// A buffer that sends a string to display in the Companion autolog
+		sSharedMMapPeek_R2 peek;				// Need a companion peek buffer for the processor registers
 	};
 
 #pragma pack( pop )
@@ -186,6 +191,8 @@ namespace GameLink
 					 const bool need_mouse,
 					 const UINT8* p_frame,
 					 const UINT8* p_sysmem );
+
+	extern void UpdatePeekInfo(sSharedMMapPeek_R2* peek, const UINT8* p_sysmem);
 
 	extern void PrintStringToAutolog(const std::string s_logstr);
 

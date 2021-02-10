@@ -36,6 +36,9 @@
 #define GAMELINK_MUTEX_NAME		"DWD_GAMELINK_MUTEX_R4"
 #define GAMELINK_MMAP_NAME		"DWD_GAMELINK_MMAP_R4"
 
+#define COMPANION_PROTOCOL_VER 1
+#define COMPANION_MMAP_NAME		"RIK_COMPANION_MMAP_R4"
+
 using namespace GameLink;
 
 //------------------------------------------------------------------------------
@@ -44,6 +47,7 @@ using namespace GameLink;
 
 static HANDLE g_mutex_handle;
 static HANDLE g_mmap_handle;
+static HANDLE g_mmapcomp_handle;
 
 static bool g_bEnableGamelink = true;		// default to true
 static bool g_bEnableTrackOnly;
@@ -55,6 +59,8 @@ static bool g_use_native_format = false;
 static GameLink::sSharedMemoryMap_R4* g_p_shared_memory;
 static GameLink::sSharedMMapBuffer_R1* g_p_outbuf;
 
+static GameLink::sSharedMMapCompanion_R1* g_p_shared_mem_companion;
+
 #define MEMORY_MAP_CORE_SIZE sizeof( GameLink::sSharedMemoryMap_R4 )
 
 
@@ -65,6 +71,17 @@ static GameLink::sSharedMMapBuffer_R1* g_p_outbuf;
 static void shared_memory_init()
 {
 	// Initialise
+
+	g_p_shared_mem_companion->version = COMPANION_PROTOCOL_VER;
+	g_p_shared_mem_companion->input.mouse_dx = 0;
+	g_p_shared_mem_companion->input.mouse_dy = 0;
+	g_p_shared_mem_companion->input.mouse_btn = 0;
+	for (int i = 0; i < 8; ++i) {
+		g_p_shared_mem_companion->input.keyb_state[i] = 0;
+	}
+	// Log
+	g_p_shared_mem_companion->buf_printstr.string_size = 0;
+
 
 	g_p_shared_memory->version = PROTOCOL_VER;
 	g_p_shared_memory->flags = 0;
@@ -81,14 +98,12 @@ static void shared_memory_init()
 	// reset input
 	g_p_shared_memory->input.mouse_dx = 0;
 	g_p_shared_memory->input.mouse_dy = 0;
-	g_p_shared_memory->input_other.mouse_dx = 0;
-	g_p_shared_memory->input_other.mouse_dy = 0;
+
 
 	g_p_shared_memory->input.mouse_btn = 0;
-	g_p_shared_memory->input_other.mouse_btn = 0;
+
 	for ( int i = 0; i < 8; ++i ) {
 		g_p_shared_memory->input.keyb_state[i] = 0;
-		g_p_shared_memory->input_other.keyb_state[i] = 0;
 	}
 
 	// reset peek interface
@@ -113,8 +128,6 @@ static void shared_memory_init()
 	// RAM
 	g_p_shared_memory->ram_size = g_membase_size;
 
-	// Log
-	g_p_shared_memory->buf_printstr.string_size = 0;
 }
 
 //
@@ -183,17 +196,35 @@ static int create_shared_memory()
 
 		if ( g_p_shared_memory )
 		{
-			return 1; // Success!
-		}
-		else
-		{
-			// tidy up file mapping.
-			CloseHandle( g_mmap_handle );
-			g_mmap_handle = NULL;
+			g_mmapcomp_handle = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL,
+				PAGE_READWRITE, 0, memory_map_size, COMPANION_MMAP_NAME);
+
+			if (g_mmapcomp_handle)
+			{
+				g_p_shared_mem_companion = reinterpret_cast<GameLink::sSharedMMapCompanion_R1*>(
+					MapViewOfFile(g_mmapcomp_handle, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(GameLink::sSharedMMapCompanion_R1))
+					);
+
+				if (g_p_shared_mem_companion)
+				{
+					return 1; // Success!
+				}
+			}
 		}
 	}
 
 	// Failure
+	// tidy up file mapping.
+	if (g_mmap_handle)
+	{
+		CloseHandle(g_mmap_handle);
+		g_mmap_handle = NULL;
+	}
+	if (g_mmapcomp_handle)
+	{
+		CloseHandle(g_mmapcomp_handle);
+		g_mmapcomp_handle = NULL;
+	}
 	return 0;
 }
 
@@ -211,11 +242,21 @@ static void destroy_shared_memory()
 		UnmapViewOfFile( g_p_shared_memory );
 		g_p_shared_memory = NULL;
 	}
+	if (g_p_shared_mem_companion)
+	{
+		UnmapViewOfFile(g_p_shared_mem_companion);
+		g_p_shared_mem_companion = NULL;
+	}
 
 	if ( g_mmap_handle )
 	{
 		CloseHandle( g_mmap_handle );
 		g_mmap_handle = NULL;
+	}
+	if (g_mmapcomp_handle)
+	{
+		CloseHandle(g_mmapcomp_handle);
+		g_mmapcomp_handle = NULL;
 	}
 }
 
@@ -415,17 +456,17 @@ int GameLink::In( GameLink::sSharedMMapInput_R2* p_input,
 		}
 		else
 		{
-			if (g_p_shared_memory->input_other.ready)
+			if (g_p_shared_mem_companion->input.ready)
 			{
-				// Copy client input out of shared memory
-				memcpy(p_input, &(g_p_shared_memory->input_other), sizeof(sSharedMMapInput_R2));
+				// Copy client input out of shared memory -- the companion input first!
+				memcpy(p_input, &(g_p_shared_mem_companion->input), sizeof(sSharedMMapInput_R2));
 
 				// Clear remote delta, prevent counting more than once.
-				g_p_shared_memory->input_other.mouse_dx = 0;
-				g_p_shared_memory->input_other.mouse_dy = 0;
+				g_p_shared_mem_companion->input.mouse_dx = 0;
+				g_p_shared_mem_companion->input.mouse_dy = 0;
 
-				ready = g_p_shared_memory->input_other.ready; // Remember the ready flag
-				g_p_shared_memory->input_other.ready = 0;
+				ready = g_p_shared_mem_companion->input.ready; // Remember the ready flag
+				g_p_shared_mem_companion->input.ready = 0;
 			}
 			else if (g_p_shared_memory->input.ready)
 			{
@@ -554,37 +595,8 @@ void GameLink::Out( const UINT16 frame_width,
 			}
 
 			// Peek for special requested memory items
-			for ( UINT pindex = 0;
-					pindex < g_p_shared_memory->peek.addr_count &&
-					pindex < sSharedMMapPeek_R2::PEEK_LIMIT;
-				++pindex )
-			{
-				// read address
-				UINT address;
-				address = g_p_shared_memory->peek.addr[ pindex ];
-
-				UINT8 data;
-				// valid?
-				if ( address < g_membase_size )
-				{
-					data = p_sysmem[ address ]; // read data
-				}
-				else if (address == sSharedMMapPeek_R2::PEEK_SPECIAL_PC_L)
-				{
-					data = (UINT8)regs.pc;
-				}
-				else if (address == sSharedMMapPeek_R2::PEEK_SPECIAL_PC_H)
-				{
-					data = (UINT8)(regs.pc >> 8);
-				}
-				else
-				{
-					data = 0; // <-- safe
-				}
-
-				// write data
-				g_p_shared_memory->peek.data[ pindex ] = data;
-			}
+			UpdatePeekInfo(&g_p_shared_memory->peek, p_sysmem);
+			UpdatePeekInfo(&g_p_shared_mem_companion->peek, p_sysmem);
 
 			// Message Processing.
 			ExecTerminal( &(g_p_shared_memory->buf_recv),
@@ -602,11 +614,47 @@ void GameLink::Out( const UINT16 frame_width,
 
 }
 
+void GameLink::UpdatePeekInfo(sSharedMMapPeek_R2* peek, const UINT8* p_sysmem)
+{
+	// Peek for special requested memory items
+	for (UINT pindex = 0;
+		pindex < peek->addr_count &&
+		pindex < sSharedMMapPeek_R2::PEEK_LIMIT;
+		++pindex)
+	{
+		// read address
+		UINT address;
+		address = peek->addr[pindex];
+
+		UINT8 data;
+		// valid?
+		if (address < g_membase_size)
+		{
+			data = p_sysmem[address]; // read data
+		}
+		else if (address == sSharedMMapPeek_R2::PEEK_SPECIAL_PC_L)
+		{
+			data = (UINT8)regs.pc;
+		}
+		else if (address == sSharedMMapPeek_R2::PEEK_SPECIAL_PC_H)
+		{
+			data = (UINT8)(regs.pc >> 8);
+		}
+		else
+		{
+			data = 0; // <-- safe
+		}
+
+		// write data
+		peek->data[pindex] = data;
+	}
+}
+
 void GameLink::PrintStringToAutolog(const std::string s_logstr)
 {
 	if (g_p_shared_memory)
 	{
-		sSharedMMapPrintBuffer_R1* buf = &g_p_shared_memory->buf_printstr;
+		sSharedMMapPrintBuffer_R1* buf = &g_p_shared_mem_companion->buf_printstr;
 		if (buf->string_size == 0)
 		{
 			// buffer has been read and cleared by the companion app
