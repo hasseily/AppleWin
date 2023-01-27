@@ -157,7 +157,6 @@ void VideoRenderer::Update(DX::StepTimer const&)
             // Do something when gamepad keys are pressed
         }
     }
-    
 
     auto kb = m_keyboard->GetState();
     // TODO: pass the keystrokes back to AppleWin if we want,
@@ -277,8 +276,8 @@ void VideoRenderer::OnWindowSizeChanged(int width, int height)
 // Properties
 void VideoRenderer::GetDefaultSize(int& width, int& height) const
 {
-    width = 1280;
-    height = 720;
+    width = 580;
+    height = 340;
 }
 
 #pragma endregion
@@ -385,10 +384,10 @@ void VideoRenderer::CreateDeviceDependentResources()
     {
         static const Vertex s_vertexData[4] =
         {
-            { { -0.5f, -0.5f, 0.5f, 1.0f }, { 0.f, 1.f } },
-            { {  0.5f, -0.5f, 0.5f, 1.0f }, { 1.f, 1.f } },
-            { {  0.5f,  0.5f, 0.5f, 1.0f }, { 1.f, 0.f } },
-            { { -0.5f,  0.5f, 0.5f, 1.0f }, { 0.f, 0.f } },
+			{ { -1.f, -1.f, 1.f, 1.f }, { 0.f, 0.f } },
+			{ {  1.f, -1.f, 1.f, 1.f }, { 1.f, 0.f } },
+			{ {  1.f, 1.f, 1.f, 1.f }, { 1.f, 1.f } },
+			{ { -1.f, 1.f, 1.f, 1.f }, { 0.f, 1.f } },
         };
 
         // Note: using upload heaps to transfer static data like vert buffers is not 

@@ -283,9 +283,9 @@ void DeviceResources::CreateWindowSizeDependentResources()
         if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
         {
 #ifdef _DEBUG
-            char buff[64] = {};
-            sprintf_s(buff, "Device Lost on ResizeBuffers: Reason code 0x%08X\n", (hr == DXGI_ERROR_DEVICE_REMOVED) ? m_d3dDevice->GetDeviceRemovedReason() : hr);
-            OutputDebugStringA(buff);
+			char buff[64] = {};
+			sprintf_s(buff, "Device Lost on ResizeBuffers: Reason code 0x%08X\n", (hr == DXGI_ERROR_DEVICE_REMOVED) ? m_d3dDevice->GetDeviceRemovedReason() : hr);
+			OutputDebugStringA(buff);
 #endif
             // If the device was removed for any reason, a new device and swap chain will need to be created.
             HandleDeviceLost();
@@ -315,10 +315,25 @@ void DeviceResources::CreateWindowSizeDependentResources()
         swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
         swapChainDesc.Flags = (m_options & c_AllowTearing) ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u;
 
+		char buff[600] = {};
+		sprintf_s(buff, "W: %d, H: %d, F: %d, C: %d, Sc: %d, SE: %d, AM: %d, Flags: %d\n", 
+            swapChainDesc.Width,
+            swapChainDesc.Height,
+            swapChainDesc.Format,
+            (int)swapChainDesc.BufferUsage,
+            (int)swapChainDesc.BufferCount,
+            (int)swapChainDesc.Scaling,
+            (int)swapChainDesc.SwapEffect,
+            (int)swapChainDesc.AlphaMode,
+            (int)swapChainDesc.Flags
+            );
+		OutputDebugStringA(buff);
+
         DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = {};
         fsSwapChainDesc.Windowed = TRUE;
 
         // Create a swap chain for the window.
+        // XXX: FAILS IN RELEASE MODE
         ComPtr<IDXGISwapChain1> swapChain;
         ThrowIfFailed(m_dxgiFactory->CreateSwapChainForHwnd(
             m_commandQueue.Get(),

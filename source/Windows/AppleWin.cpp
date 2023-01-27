@@ -840,12 +840,12 @@ static void RepeatInitialization(void)
 		JoyInitialize();
 		LogFileOutput("Main: JoyInitialize()\n");
 
-		GetVideo().Initialize(); // g_pFramebufferinfo been created now & COM init'ed
-		LogFileOutput("Main: VideoInitialize()\n");
-
 		LogFileOutput("Main: FrameCreateWindow() - pre\n");
 		FrameCreateWindow();	// GetFrame().g_hFrameWindow is now valid
 		LogFileOutput("Main: FrameCreateWindow() - post\n");
+
+		GetVideo().Initialize(); // g_pFramebufferinfo been created now & COM init'ed
+		LogFileOutput("Main: VideoInitialize()\n");
 
 		// Init palette color
 		VideoSwitchVideocardPalette(RGB_GetVideocard(), GetVideo().GetVideoType());

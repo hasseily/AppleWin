@@ -97,7 +97,8 @@ void WinVideo::Initialize(void)
 	videoCreateDIBSection();
 
 	g_videoRenderer = std::make_unique<VideoRenderer>();
-	g_videoRenderer->Initialize(GetDesktopWindow(), GetFrameBufferWidth(), GetFrameBufferHeight());
+	g_videoRenderer->Initialize(GetFrame().g_hFrameWindow, GetFrameBufferWidth(), GetFrameBufferHeight());
+	//g_videoRenderer->Initialize(GetDesktopWindow(), GetFrameBufferWidth(), GetFrameBufferHeight());
 
 #if 0
 	DDInit();	// For WaitForVerticalBlank()
