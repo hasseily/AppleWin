@@ -140,7 +140,6 @@ VidHDSdhr::~VidHDSdhr() {
 			free(windows[i].tile_indexes);
 		}
 	}
-	delete m_pSDHRNetworker;
 }
 
 void VidHDSdhr::ImageAsset::AssignByFilename(VidHDSdhr* owner, const char* filename) {
@@ -258,8 +257,8 @@ void VidHDSdhr::SDHRWriteByte(BYTE value) {
 	// Could do this on a byte-by-byte basis
 	// But instead we batch it in ProcessCommands()
 	/*
-	if (m_pSDHRNetworker->IsEnabled())
-		m_pSDHRNetworker->BusDataPacket(value);
+	if (g_sdhrNetworker->IsEnabled())
+		g_sdhrNetworker->BusDataPacket(value);
 	*/
 }
 
@@ -327,12 +326,12 @@ bool VidHDSdhr::ProcessCommands() {
 		return true;
 	}
 
-	bool isSdhrNetworked = m_pSDHRNetworker->IsEnabled();
+	bool isSdhrNetworked = g_sdhrNetworker->IsEnabled();
 	if (isSdhrNetworked)
 	{
-		if (!m_pSDHRNetworker->IsConnected())
-			m_pSDHRNetworker->Connect();
-		isSdhrNetworked = m_pSDHRNetworker->IsConnected();
+		if (!g_sdhrNetworker->IsConnected())
+			g_sdhrNetworker->Connect();
+		isSdhrNetworked = g_sdhrNetworker->IsConnected();
 	}
 
 	BYTE* begin = &command_buffer[0];
@@ -360,7 +359,7 @@ bool VidHDSdhr::ProcessCommands() {
 			uint64_t data_size = (uint64_t)512;
 			memcpy(uploaded_data_region + dest_offset, MemGetMainPtr(cmd->source_addr), data_size);
 			if (isSdhrNetworked)
-				m_pSDHRNetworker->BusDataMemoryStream(MemGetMainPtr(cmd->source_addr), cmd->source_addr, data_size);
+				g_sdhrNetworker->BusDataMemoryStream(MemGetMainPtr(cmd->source_addr), cmd->source_addr, data_size);
 		} break;
 		case SDHR_CMD_DEFINE_IMAGE_ASSET: {
 			LogFileOutput("DefineImageAsset\n");
@@ -605,11 +604,11 @@ bool VidHDSdhr::ProcessCommands() {
 		}
 		p += message_length - 3;
 		if (isSdhrNetworked)
-			m_pSDHRNetworker->BusDataCommandStream(p_start, p - p_start);
+			g_sdhrNetworker->BusDataCommandStream(p_start, p - p_start);
 	}
 	if (p == end) {
 		if (isSdhrNetworked)
-			m_pSDHRNetworker->BusCtrlPacket(SDHRCtrl_e::SDHR_CTRL_PROCESS);
+			g_sdhrNetworker->BusCtrlPacket(SDHRCtrl_e::SDHR_CTRL_PROCESS);
 		// rubber meets the road, draw the windows to the screen
 		/*
 		for (uint16_t window_index = 0; window_index < 256; ++window_index) {
@@ -661,27 +660,27 @@ bool VidHDSdhr::ProcessCommands() {
 }
 
 void VidHDSdhr::NetworkEnable() {
-	if (m_pSDHRNetworker->IsEnabled())
-		if (!m_pSDHRNetworker->IsConnected())
-			m_pSDHRNetworker->Connect();
-	if (m_pSDHRNetworker->IsConnected())
-		m_pSDHRNetworker->BusCtrlPacket(SDHRCtrl_e::SDHR_CTRL_ENABLE);
+	if (g_sdhrNetworker->IsEnabled())
+		if (!g_sdhrNetworker->IsConnected())
+			g_sdhrNetworker->Connect();
+	if (g_sdhrNetworker->IsConnected())
+		g_sdhrNetworker->BusCtrlPacket(SDHRCtrl_e::SDHR_CTRL_ENABLE);
 }
 
 void VidHDSdhr::NetworkDisable()
 {
-	if (m_pSDHRNetworker->IsConnected())
+	if (g_sdhrNetworker->IsConnected())
 	{
-		m_pSDHRNetworker->BusCtrlPacket(SDHRCtrl_e::SDHR_CTRL_DISABLE);
-		m_pSDHRNetworker->Disconnect();
+		g_sdhrNetworker->BusCtrlPacket(SDHRCtrl_e::SDHR_CTRL_DISABLE);
+		g_sdhrNetworker->Disconnect();
 	}
 }
 
 void VidHDSdhr::NetworkReset()
 {
-	if (m_pSDHRNetworker->IsEnabled())
-		if (!m_pSDHRNetworker->IsConnected())
-			m_pSDHRNetworker->Connect();
-	if (m_pSDHRNetworker->IsConnected())
-		m_pSDHRNetworker->BusCtrlPacket(SDHRCtrl_e::SDHR_CTRL_RESET);
+	if (g_sdhrNetworker->IsEnabled())
+		if (!g_sdhrNetworker->IsConnected())
+			g_sdhrNetworker->Connect();
+	if (g_sdhrNetworker->IsConnected())
+		g_sdhrNetworker->BusCtrlPacket(SDHRCtrl_e::SDHR_CTRL_RESET);
 }

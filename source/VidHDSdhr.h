@@ -13,7 +13,6 @@ public:
 		memset(uploaded_data_region, sizeof(uploaded_data_region), 0);
 		memset(tileset_records, sizeof(tileset_records), 0);
 		memset(windows, sizeof(windows), 0);
-		m_pSDHRNetworker = new SDHRNetworker;
 	}
 	~VidHDSdhr();
 	void NetworkEnable();
@@ -99,6 +98,5 @@ private:
 	TilesetRecord tileset_records[256];
 	Window windows[256];
 	uint32_t screen_color[screen_xcount * screen_ycount];
-	SDHRNetworker* m_pSDHRNetworker;
 };
 

@@ -245,6 +245,7 @@ static bool g_Annunciator[kNumAnnunciators] = {};
 
 BYTE __stdcall IO_Annunciator(WORD programcounter, WORD address, BYTE write, BYTE value, ULONG nCycles);
 
+SDHRNetworker* g_sdhrNetworker = NULL;
 //=============================================================================
 
 // Default memory types on a VM restart
@@ -1799,6 +1800,12 @@ inline DWORD getRandomTime()
 // . Snapshot_LoadState_v2()
 void MemReset()
 {
+	// Initialize the SDHRNetworker
+	if (g_sdhrNetworker != NULL)
+		delete g_sdhrNetworker;
+	g_sdhrNetworker = new SDHRNetworker();
+	g_sdhrNetworker->Connect();
+
 	// INITIALIZE THE PAGING TABLES
 	memset(memshadow, 0, 256*sizeof(LPBYTE));
 	memset(memwrite , 0, 256*sizeof(LPBYTE));
