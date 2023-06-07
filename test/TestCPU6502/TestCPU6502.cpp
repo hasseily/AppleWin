@@ -4,6 +4,8 @@
 #include "../../source/CPU.h"
 #include "../../source/Memory.h"
 #include "../../source/SynchronousEventManager.h"
+#include "../../source/SDHRNetworker.h"
+#include "../../source/SDHRNetworker.cpp"
 
 // From Applewin.cpp
 bool g_bFullSpeed = false;
@@ -17,6 +19,7 @@ LPBYTE         memdirty     = NULL;	// TODO: Init
 LPBYTE         memVidHD     = NULL;	// TODO: Init
 iofunction		IORead[256] = {0};	// TODO: Init
 iofunction		IOWrite[256] = {0};	// TODO: Init
+SDHRNetworker* g_sdhrNetworker = NULL;
 
 BYTE __stdcall IO_F8xx(WORD programcounter, WORD address, BYTE write, BYTE value, ULONG nCycles)
 {
