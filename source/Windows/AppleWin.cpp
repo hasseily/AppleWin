@@ -154,6 +154,8 @@ static void ContinueExecution(void)
 		if (g_nAppMode == MODE_RUNNING)
 		{
 			bScrollLock_FullSpeed = GetKeyState(VK_SCROLL) < 0;
+			if (GetKeyState(VK_END) < 0)
+				g_debugLogInstructions = 500000;
 		}
 		else if (!IsDebugSteppingAtFullSpeed()) // Implicitly: MODE_STEPPING
 		{

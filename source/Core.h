@@ -26,6 +26,8 @@ void SetApple2Type(eApple2Type type);
 double Get6502BaseClock(void);
 void SetCurrentCLK6502(void);
 
+extern int g_debugLogInstructions;    // Tapping "End" logs the next 500,000 instructions
+
 // set g_dwSpeed =
 // | clockMultiplier == 0  => unchanged
 // | clockMultiplier < 1   => (max(0.5, clockMultiplier) - 0.5) * 20

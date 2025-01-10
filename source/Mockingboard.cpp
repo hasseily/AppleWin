@@ -92,6 +92,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "AY8910.h"
 #include "SSI263.h"
+#include <iostream>
+#include <sstream>
 
 #define DBG_MB_SS_CARD 0	// From UI, select Mockingboard (not Phasor)
 
@@ -315,6 +317,7 @@ static void AY8910_Write(BYTE nDevice, BYTE /*nReg*/, BYTE nValue, BYTE nAYDevic
 	{
 		// RESET: Reset AY8910 only
 		AY8910_reset(nDevice+2*nAYDevice);
+		std::cerr << std::hex << "RESET " << (int)nValue << " " << (int)nAYDevice << std::endl;
 	}
 	else
 	{
@@ -1415,6 +1418,10 @@ static BYTE __stdcall MB_Write(WORD PC, WORD nAddr, BYTE bWrite, BYTE nValue, UL
 
 		return 0;
 	}
+
+	std::ostringstream __oss;
+	__oss << "MB: " << (int)nMB << " Offset: " << std::hex << (int)nOffset << " Addr : " << (int)(nAddr & 0xf) << " Value : " << (int)nValue << std::endl;
+	OutputDebugString(__oss.str().c_str());
 
 	if (nOffset < SY6522B_Offset)
 		SY6522_Write(nMB*NUM_DEVS_PER_MB + SY6522_DEVICE_A, nAddr&0xf, nValue);

@@ -49,6 +49,8 @@ static UINT16 g_OldAppleWinVersion[4] = {0};
 UINT16 g_AppleWinVersion[4] = { 0 };
 TCHAR VERSIONSTRING[VERSIONSTRING_SIZE] = "xx.yy.zz.ww";
 
+int g_debugLogInstructions = 0;    // Tapping "End" logs the next 500,000 instructions
+
 std::string g_pAppTitle;
 
 eApple2Type	g_Apple2Type = A2TYPE_APPLE2EENHANCED;
