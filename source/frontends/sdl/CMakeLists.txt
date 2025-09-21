@@ -1,7 +1,7 @@
 include(FindPkgConfig)
 include(FindOpenGL)
 
-add_executable(sa2)
+add_executable(sa2 MACOSX_BUNDLE)
 
 set(IMGUI_PATH "imgui/imgui")
 set(IMGUI_CLUB_PATH "imgui/imgui_club")
@@ -142,7 +142,28 @@ install(TARGETS sa2
     PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-"    # skip Windows system DLLs
     POST_EXCLUDE_REGEXES ".*system32/.*"       # skip more system DLLs
   FRAMEWORK DESTINATION Frameworks
+  BUNDLE DESTINATION bin
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION bin
   ARCHIVE DESTINATION lib
 )
+
+# ==== PostProcessing ====
+add_subdirectory(pp)
+target_link_libraries(sa2 PRIVATE pp)
+
+# Pull the resources directories from pp and copy to the sa2 output/bundle
+# The INTERFACE_PP_ASSET_DIRS are absolute full paths of directories
+get_target_property(PP_SUBDIRS pp INTERFACE_PP_ASSET_DIRS)
+
+foreach(srcdir IN LISTS PP_SUBDIRS)
+  if(EXISTS "${srcdir}")
+    get_filename_component(dstname "${srcdir}" NAME)
+    set(_dst_ge "$<IF:$<BOOL:$<TARGET_PROPERTY:sa2,MACOSX_BUNDLE>>,$<TARGET_FILE_DIR:sa2>/../Resources/${dstname},$<TARGET_FILE_DIR:sa2>/${dstname}>")
+
+    add_custom_command(TARGET sa2 POST_BUILD
+      COMMAND "${CMAKE_COMMAND}" -E copy_directory "${srcdir}" "${_dst_ge}"
+      VERBATIM
+    )
+  endif()
+endforeach()

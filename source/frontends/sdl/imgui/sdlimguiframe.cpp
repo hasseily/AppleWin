@@ -5,6 +5,7 @@
 #include "frontends/common2/utils.h"
 #include "frontends/common2/programoptions.h"
 #include "frontends/sdl/imgui/image.h"
+#include "frontends/sdl/pp/postprocessor.h"
 
 #include "../resource/resource.h"
 
@@ -86,6 +87,10 @@ namespace sa2
         SDL_GL_MakeCurrent(myWindow.get(), myGLContext);
         SetGLSynchronisation(options); // must be called after GL initialisation
 
+		if (!PP_InitGL(SDL_GL_GetProcAddress)) {
+			throw std::runtime_error(decorateSDLError("SDL_GL_GetProcAddress"));
+		}
+
         // Setup Platform/Renderer backends
         std::cerr << "IMGUI_VERSION: " << IMGUI_VERSION << std::endl;
         std::cerr << "GL_VENDOR: " << safeGlGetString(GL_VENDOR) << std::endl;
@@ -141,8 +146,8 @@ namespace sa2
     void SDLImGuiFrame::Initialize(bool resetVideoState)
     {
         SDLFrame::Initialize(resetVideoState);
-        glDeleteTextures(1, &myTexture);
-        glGenTextures(1, &myTexture);
+		glDeleteTextures(1, (const GLuint*)&myTexture);
+		glGenTextures(1, (GLuint*)&myTexture);
 
         Video &video = GetVideo();
 
@@ -185,34 +190,37 @@ namespace sa2
 
         const float menuBarHeight = mySettings.drawMenuBar(this, !myFullscreen);
         myDeadTopZone = menuBarHeight;
+		auto postProcessor = PostProcessor::GetInstance();
 
-        if (mySettings.windowed)
-        {
-            if (ImGui::Begin("Apple ]["))
-            {
-                UpdateTexture();
-                ImGui::Image(myTexture, ImGui::GetContentRegionAvail(), uv0, uv1);
-            }
-            ImGui::End();
-        }
-        else
-        {
-            UpdateTexture();
+		if (mySettings.windowed)
+		{
+			if (ImGui::Begin("Apple ]["))
+			{
+				UpdateTexture();
+				auto contentSize = ImGui::GetContentRegionAvail();
+				postProcessor->Render((int)contentSize.x, (int)contentSize.y, myTexture, (uint32_t)myBorderlessWidth, (uint32_t)myBorderlessHeight);
+				ImGui::Image(postProcessor->GetTextureId(), contentSize, uv0, uv1);
+			}
+			ImGui::End();
+		}
+		else
+		{
+			UpdateTexture();
 
-            // draw on the background
-            ImGuiIO &io = ImGui::GetIO();
-            ImVec2 p_min(0, menuBarHeight);
-            ImVec2 p_max = io.DisplaySize;
+			// draw on the background
+			ImGuiIO &io = ImGui::GetIO();
+			ImVec2 p_min(0, myFullscreen ? 200 : menuBarHeight);
+			ImVec2 p_max = io.DisplaySize;
 
-            if (myPreserveAspectRatio)
-            {
-                // scale & center
-                correctAspectRatio(p_min, p_max, myOriginalAspectRatio);
-            }
-
-            ImGui::GetBackgroundDrawList()->AddImage(myTexture, p_min, p_max, uv0, uv1);
-        }
-    }
+			if (myPreserveAspectRatio)
+			{
+				// scale & center
+				correctAspectRatio(p_min, p_max, myOriginalAspectRatio);
+			}
+			postProcessor->Render((int)(p_max.x - p_min.x), (int)(p_max.y - p_min.y), myTexture, (uint32_t)myBorderlessWidth, (uint32_t)myBorderlessHeight);
+			ImGui::GetBackgroundDrawList()->AddImage(postProcessor->GetTextureId(), p_min, p_max, uv0, uv1);
+		}
+	}
 
     void SDLImGuiFrame::GetRelativeMousePosition(const SDL_MouseMotionEvent &motion, float &x, float &y) const
     {
@@ -247,6 +255,8 @@ namespace sa2
             // "this" is a bit circular
             mySettings.show(this, myDebuggerFont);
             DrawAppleVideo();
+			if (ppIsOpen)
+				PostProcessor::GetInstance()->DisplayImGuiWindow(&ppIsOpen);
 
             ImGui::Render();
             ClearBackground();
@@ -305,7 +315,10 @@ namespace sa2
                 if (modifiers == KMOD_NONE)
                 {
                     mySettings.toggleSettings();
-                }
+				} else if (modifiers == KMOD_SHIFT)
+				{
+					ppIsOpen = !ppIsOpen;
+				}
                 break;
             }
             case SDLK_F7:
