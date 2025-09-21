@@ -25,7 +25,7 @@ namespace sa2 {
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 		// GL ES 3.0 + GLSL 300 es
 		// ImGui only supports 3.0, not 3.1
-		glsl_version = "#version 300 es";
+		s_glsl_version = "#version 300 es";
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -39,7 +39,7 @@ namespace sa2 {
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 #else
 		// GL 4.1 Core + GLSL 410
-		glsl_version = "#version 410";
+		s_glsl_version = "#version 410";
 		if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0) != 0)
 			std::cerr << "SDL Error: " << SDL_GetError() << std::endl;
 		if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE) != 0)

@@ -7,6 +7,8 @@
 #include <iostream>
 #include <variant>
 #include <SDL.h>
+#include <unordered_map>
+#include <vector>
 #include "glm/glm.hpp"
 
 /*
