@@ -1,6 +1,8 @@
 include(FindPkgConfig)
 include(FindOpenGL)
 
+set(CMAKE_OSX_DEPLOYMENT_TARGET "14.6" CACHE STRING "Minimum OS X deployment version" FORCE)
+
 add_executable(sa2 MACOSX_BUNDLE)
 
 set(IMGUI_PATH "imgui/imgui")
@@ -152,24 +154,38 @@ install(TARGETS sa2
 add_subdirectory(pp)
 target_link_libraries(sa2 PRIVATE pp)
 
-# Pull the resources directories from pp and copy to the sa2 output/bundle
+# Pull the resources directories from pp and copy to the sa2 output
 # The INTERFACE_PP_ASSET_DIRS are absolute full paths of directories
+# On Windows/Linux or if the target isn’t a bundle: copy next to the exe.
+# We use the INTERFACE property published by 'pp' to know which dirs to copy.
+
 get_target_property(PP_SUBDIRS pp INTERFACE_PP_ASSET_DIRS)
 
-foreach(srcdir IN LISTS PP_SUBDIRS)
-  if(EXISTS "${srcdir}")
-    get_filename_component(dstname "${srcdir}" NAME)
-    if (APPLE)
-      # on MacOS, copy into the .app bundle's Resources directory
-      set(_dst_ge "$<TARGET_FILE_DIR:sa2>/../Resources/${dstname}")
-    else()
-      # on other platforms, copy next to the executable
-      set(_dst_ge "$<TARGET_FILE_DIR:sa2>/${dstname}")
-    endif()
+if(PP_SUBDIRS AND CMAKE_GENERATOR STREQUAL "Xcode")
+  target_sources(sa2 PRIVATE ${PP_SUBDIRS})
+  # Make them blue folder refs and route them to Contents/Resources
+  set_source_files_properties(${PP_SUBDIRS} PROPERTIES
+    XCODE_FILE_ATTRIBUTES "folder"
+    MACOSX_PACKAGE_LOCATION "Resources")
+endif()
 
-    add_custom_command(TARGET sa2 POST_BUILD
-      COMMAND "${CMAKE_COMMAND}" -E copy_directory "${srcdir}" "${_dst_ge}"
-      VERBATIM
-    )
-  endif()
-endforeach()
+if(PP_SUBDIRS AND NOT CMAKE_GENERATOR STREQUAL "Xcode")
+  foreach(srcdir IN LISTS PP_SUBDIRS)
+    if(EXISTS "${srcdir}")
+      get_filename_component(dstname "${srcdir}" NAME)
+
+      # Build-time bundle check:
+      # - If a real .app exists, copy into Contents/Resources (shouldn't happen)
+      # - Otherwise, copy beside the executable
+      set(_dst_root
+        "$<IF:$<BOOL:$<TARGET_BUNDLE_DIR:sa2>>,
+             $<TARGET_BUNDLE_CONTENT_DIR:sa2>/Resources,
+             $<TARGET_FILE_DIR:sa2>>")
+
+      add_custom_command(TARGET sa2 POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${_dst_root}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${srcdir}" "${_dst_root}/${dstname}"
+        VERBATIM)
+    endif()
+  endforeach()
+endif()

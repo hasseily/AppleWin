@@ -44,32 +44,40 @@ target_include_directories(pp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT
 
 # Declare pp's resource dirs (semicolon-separated)
 # and turn them into absolute paths
-set(_pp_asset_dirs_raw
+set(_pp_asset_dirs
   "${CMAKE_CURRENT_SOURCE_DIR}/presets"
   "${CMAKE_CURRENT_SOURCE_DIR}/assets"
   "${CMAKE_CURRENT_SOURCE_DIR}/shaders"
 )
-
-set(_pp_asset_dirs "")
-foreach(d IN LISTS _pp_asset_dirs_raw)
+set(_pp_asset_dirs_abs "")
+foreach(d IN LISTS _pp_asset_dirs)
   if(EXISTS "${d}")
     get_filename_component(absd "${d}" REALPATH)
-    list(APPEND _pp_asset_dirs "${absd}")
+    list(APPEND _pp_asset_dirs_abs "${absd}")
   endif()
 endforeach()
 
-# Publish them via an INTERFACE property
-set_property(TARGET pp PROPERTY INTERFACE_PP_ASSET_DIRS "${_pp_asset_dirs}")
+# Publish the absolute dirs so consumers (sa2) can also copy them if needed
+#    (used by non-Apple platforms / non-bundle fallbacks)
+set_property(TARGET pp PROPERTY INTERFACE_PP_ASSET_DIRS "${_pp_asset_dirs_abs}")
 
-# show asset files in the IDE
-# collect them but don't compile them
-file(GLOB ASSET_FILES
-    "${CMAKE_CURRENT_SOURCE_DIR}/presets/*"
-    "${CMAKE_CURRENT_SOURCE_DIR}/assets/*"
-    "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*"
-)
-foreach(dir presets assets shaders)
-    file(GLOB FILES "${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*")
-    source_group(${dir} FILES ${FILES})
-    target_sources(pp PRIVATE ${FILES})
-endforeach()
+# IDE visibility everywhere
+if(NOT CMAKE_GENERATOR STREQUAL "Xcode")
+  # ---- Other IDEs (VS, Ninja, Makefiles): enumerate files so they show up in the project tree
+  set(PP_ASSET_FILES "")
+  foreach(dir IN LISTS _pp_asset_dirs_abs)
+    file(GLOB_RECURSE _one_dir_files CONFIGURE_DEPENDS "${dir}/*")
+    list(APPEND PP_ASSET_FILES ${_one_dir_files})
+  endforeach()
+
+  # Add files as header-only so IDEs show them but nobody tries to compile them
+  if(PP_ASSET_FILES)
+    target_sources(pp INTERFACE ${PP_ASSET_FILES})
+    set_source_files_properties(${PP_ASSET_FILES} PROPERTIES HEADER_FILE_ONLY TRUE)
+
+    # Put them under a nice virtual group
+    source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}"
+                 PREFIX "Resources"
+                 FILES ${PP_ASSET_FILES})
+  endif()
+endif()
