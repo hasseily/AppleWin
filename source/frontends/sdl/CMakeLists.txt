@@ -159,7 +159,13 @@ get_target_property(PP_SUBDIRS pp INTERFACE_PP_ASSET_DIRS)
 foreach(srcdir IN LISTS PP_SUBDIRS)
   if(EXISTS "${srcdir}")
     get_filename_component(dstname "${srcdir}" NAME)
-    set(_dst_ge "$<IF:$<BOOL:$<TARGET_PROPERTY:sa2,MACOSX_BUNDLE>>,$<TARGET_FILE_DIR:sa2>/../Resources/${dstname},$<TARGET_FILE_DIR:sa2>/${dstname}>")
+    if (APPLE)
+      # on MacOS, copy into the .app bundle's Resources directory
+      set(_dst_ge "$<TARGET_FILE_DIR:sa2>/../Resources/${dstname}")
+    else()
+      # on other platforms, copy next to the executable
+      set(_dst_ge "$<TARGET_FILE_DIR:sa2>/${dstname}")
+    endif()
 
     add_custom_command(TARGET sa2 POST_BUILD
       COMMAND "${CMAKE_COMMAND}" -E copy_directory "${srcdir}" "${_dst_ge}"
