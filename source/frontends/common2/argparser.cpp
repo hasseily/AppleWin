@@ -1,16 +1,13 @@
+// argparser.cpp (boost::program_options version)
+
 #include "StdAfx.h"
 #include "frontends/common2/argparser.h"
 #include "frontends/common2/programoptions.h"
 #include "frontends/common2/utils.h"
 #include "linux/version.h"
-
 #include "Memory.h"
 
-#ifdef _WIN32
-#  include "frontends/common2/getopt.h"
-#else
-#  include <getopt.h>
-#endif
+#include <boost/program_options.hpp>
 #include <regex>
 #include <iostream>
 #include <iomanip>
@@ -18,445 +15,264 @@
 
 namespace
 {
+	using namespace boost::program_options;
 
-    constexpr int PAUSED = 1001;
-    constexpr int FIXED_SPEED = 1002;
-    constexpr int HEADLESS = 1003;
-    constexpr int NO_SQUARING = 1004;
-    constexpr int SLIRP_NAT = 1005;
+	void parseGeometry(const std::string &s, std::optional<common2::Geometry> &geometry)
+	{
+		std::smatch m;
+		if (std::regex_match(s, m, std::regex("^(\\d+)x(\\d+)(\\+(\\d+)\\+(\\d+))?$")))
+		{
+			const size_t groups = m.size();
+			if (groups == 6)
+			{
+				geometry = common2::Geometry();
+				geometry->width = std::stoi(m.str(1));
+				geometry->height = std::stoi(m.str(2));
+				if (!m.str(3).empty())
+				{
+					geometry->x = std::stoi(m.str(4));
+					geometry->y = std::stoi(m.str(5));
+				}
+				return;
+			}
+		}
+		throw std::runtime_error("Invalid sizes: " + s);
+	}
 
-    constexpr int DISK_H1 = 1006;
-    constexpr int DISK_H2 = 1007;
-
-    constexpr int MEM_CLEAR = 1008;
-    constexpr int ROM = 1009;
-    constexpr int F8ROM = 1010;
-
-    constexpr int NO_AUDIO = 1011;
-    constexpr int AUDIO_BUFFER = 1012;
-    constexpr int WAV_SPEAKER = 1013;
-    constexpr int WAV_MOCKINGBOARD = 1014;
-
-    constexpr int SDL_DRIVER = 1015;
-    constexpr int GL_SWAP = 1016;
-    constexpr int TIMER = 1017;
-    constexpr int NO_IMGUI = 1018;
-    constexpr int GEOMETRY = 1019;
-    constexpr int ASPECT_RATIO = 1020;
-    constexpr int GAME_CONTROLLER = 1021;
-    constexpr int MAPPING_FILE = 1022;
-    constexpr int AUDIO_DEVICE = 1023;
-
-    constexpr int NO_VIDEO_UPDATE = 1024;
-    constexpr int EV_DEVICE_NAME = 1025;
-
-    struct OptionData_t
-    {
-        const char *name;
-        int has_arg;
-        int val;
-        const char *description;
-        const char *defaultValue; // optional
-    };
-
-    bool isShort(const int val)
-    {
-        return val >= 0 && val <= 0xFF;
-    }
-
-    void printHelp(const std::vector<std::pair<std::string, std::vector<OptionData_t>>> &data)
-    {
-        for (const auto &categories : data)
-        {
-            std::cerr << categories.first << ":" << std::endl;
-            for (const auto &option : categories.second)
-            {
-                std::cerr << "  ";
-                std::ostringstream value;
-                if (isShort(option.val))
-                {
-                    value << "[ -" << char(option.val) << " ] ";
-                }
-                else
-                {
-                    value << "       ";
-                }
-                value << "--" << option.name;
-                if (option.has_arg == required_argument)
-                {
-                    value << " arg";
-                }
-                std::cerr << std::left << std::setw(30) << value.str() << "\t" << option.description << std::endl;
-                if (option.defaultValue)
-                {
-                    std::cerr << "\t\t\t\t\t( " << option.defaultValue << " )" << std::endl;
-                }
-            }
-            std::cerr << std::endl;
-        }
-    }
-
-    void parseGeometry(const std::string &s, std::optional<common2::Geometry> &geometry)
-    {
-        std::smatch m;
-        if (std::regex_match(s, m, std::regex("^(\\d+)x(\\d+)(\\+(\\d+)\\+(\\d+))?$")))
-        {
-            const size_t groups = m.size();
-            if (groups == 6)
-            {
-                geometry = common2::Geometry();
-                geometry->width = std::stoi(m.str(1));
-                geometry->height = std::stoi(m.str(2));
-                if (!m.str(3).empty())
-                {
-                    geometry->x = std::stoi(m.str(4));
-                    geometry->y = std::stoi(m.str(5));
-                }
-                return;
-            }
-        }
-        throw std::runtime_error("Invalid sizes: " + s);
-    }
-
-    void extractOptions(
-        const std::vector<std::pair<std::string, std::vector<OptionData_t>>> &data, std::vector<option> &longOptions,
-        std::string &shortOptions)
-    {
-        std::ostringstream shorts;
-        for (const auto &categories : data)
-        {
-            for (const auto &option : categories.second)
-            {
-                longOptions.push_back({option.name, option.has_arg, nullptr, option.val});
-                const int val = option.val;
-                if (isShort(val))
-                {
-                    shorts << char(val);
-                    if (option.has_arg == required_argument)
-                    {
-                        shorts << ":";
-                    }
-                }
-            }
-        }
-        longOptions.push_back({nullptr, 0, nullptr, 0});
-        shortOptions.append(shorts.str());
-    }
-
+	// Helper to print grouped help like the original
+	void print_help(const std::vector<std::pair<std::string, boost::program_options::options_description>> &groups)
+	{
+		std::cerr << "\n";
+		for (const auto &g : groups)
+		{
+			std::cerr << g.first << ":\n";
+			std::ostringstream oss;
+			oss << g.second; // program_options does formatted output
+			std::cerr << oss.str() << "\n";
+		}
+	}
 } // namespace
 
 namespace common2
 {
 
-    bool getEmulatorOptions(
-        int argc, char *const argv[], OptionsType type, const std::string &edition, EmulatorOptions &options)
-    {
-        const std::string name = "Apple Emulator for " + edition + " (based on AppleWin " + getVersion() + ")";
+	bool getEmulatorOptions(
+							int argc, char *const argv[], OptionsType type, const std::string &edition, EmulatorOptions &options)
+	{
+		namespace po = boost::program_options;
 
-        const std::string configurationFileDefault = getConfigFile("applewin.conf").string();
-        const std::string audioBufferDefault = std::to_string(options.audioBuffer);
+		const std::string name = "Apple Emulator for " + edition + " (based on AppleWin " + getVersion() + ")";
+		const std::string configurationFileDefault = getConfigFile("applewin.conf").string();
 
-        // clang-format off
+		// ---- Groups ----
+		po::options_description top(name);
+		// Keep short options where they made sense before; Boost allows digit shorts (e.g., ",1")
+		top.add_options()
+		("help,h", "Print this help message");
 
-        std::vector<std::pair<std::string, std::vector<OptionData_t>>> allOptions = {
-            {name.c_str(),
-             {
-                 {"help",                    no_argument,          'h',              "Print this help message"},
-             }},
-            {"Configuration",
-             {
-                 {"conf",                    required_argument,    'c',              "Select configuration file", configurationFileDefault.c_str()},
-                 {"qt-ini",                  no_argument,          'q',              "Use Qt ini file (read only)"},
-                 {"registry",                required_argument,    'r',              "Registry options section.path=value"},
-             }},
-            {"Emulator",
-             {
-                 {"log",                     no_argument,          'l',              "Log to AppleWin.log"},
-                 {"paused",                  no_argument,          PAUSED,           "Start paused"},
-                 {"fixed-speed",             no_argument,          FIXED_SPEED,      "Fixed (non-adaptive) speed"},
-                 {"headless",                no_argument,          HEADLESS,         "Headless: disable video (freewheel)"},
-                 {"benchmark",               no_argument,          'b',              "Benchmark emulator"},
-                 {"no-squaring",             no_argument,          NO_SQUARING,      "Gamepad range is (already) a square"},
-                 {"nat",                     required_argument,    SLIRP_NAT,        "SLIRP PortFwd (e.g. 0,tcp,,8080,,http)"},
-             }},
-            {"Disk",
-             {
-                 {"d1",                      required_argument,    '1',              "Disk in S6D1 drive"},
-                 {"d2",                      required_argument,    '2',              "Disk in S6D2 drive"},
-                 {"h1",                      required_argument,    DISK_H1,          "Hard Disk in 1st drive"},
-                 {"h2",                      required_argument,    DISK_H2,          "Hard Disk in 1st drive"},
-             }},
-            {"Snapshot",
-             {
-                 {"state-filename",          required_argument,    'f',              "Set snapshot filename"},
-                 {"load-state",              required_argument,    's',              "Load snapshot from file"},
-             }},
-            {"Memory",
-             {
-                 {"memclear",                required_argument,    MEM_CLEAR,        "Memory initialization pattern [0..7]"},
-                 {"rom",                     required_argument,    ROM,              "Custom 12k/16k ROM"},
-                 {"f8rom",                   required_argument,    F8ROM,            "Custom 2k ROM"},
-             }},
-            {"Audio",
-             {
-                 {"no-audio",                no_argument,          NO_AUDIO,         "Disable audio"},
-                 {"audio-buffer",            required_argument,    AUDIO_BUFFER,     "Audio buffer (ms)", audioBufferDefault.c_str()},
-                 {"wav-speaker",             required_argument,    WAV_SPEAKER,      "Speaker wav output filename"},
-                 {"wav-mockingboard",        required_argument,    WAV_MOCKINGBOARD, "Mockingboard wav output filename"},
-             }},
-        };
+		po::options_description cfg("Configuration");
+		cfg.add_options()
+		("conf,c", po::value<std::string>()->default_value(configurationFileDefault), "Select configuration file")
+		("qt-ini,q", po::bool_switch()->default_value(false), "Use Qt ini file (read only)")
+		("registry,r", po::value<std::vector<std::string>>()->composing(), "Registry options section.path=value");
 
-        const std::vector<std::pair<std::string, std::vector<OptionData_t>>> sa2Options = {
-            {"sa2",
-             {
-                 {"sdl-driver",              required_argument,    SDL_DRIVER,       "SDL driver"},
-                 {"gl-swap",                 required_argument,    GL_SWAP,          "SDL_GL_SwapInterval"},
-                 {"timer",                   no_argument,          TIMER,            "Synchronise with timer"},
-                 {"no-imgui",                no_argument,          NO_IMGUI,         "Plain SDL2 renderer"},
-                 {"geometry",                required_argument,    GEOMETRY,         "WxH[+X+Y]"},
-                 {"aspect-ratio",            no_argument,          ASPECT_RATIO,     "Always preserve correct aspect ratio"},
-                 {"game-controller",         required_argument,    GAME_CONTROLLER,  "SDL_GameControllerOpen"},
-                 {"game-mapping-file",       required_argument,    MAPPING_FILE,     "SDL_GameControllerAddMappingsFromFile"},
-                 {"audio-device",            required_argument,    AUDIO_DEVICE,     "Audio device name"},
-             }},
-        };
+		po::options_description emu("Emulator");
+		emu.add_options()
+		("log,l", po::bool_switch()->default_value(false), "Log to AppleWin.log")
+		("paused", po::bool_switch()->default_value(false), "Start paused")
+		("fixed-speed", po::bool_switch()->default_value(false), "Fixed (non-adaptive) speed")
+		("headless", po::bool_switch()->default_value(false), "Headless: disable video (freewheel)")
+		("benchmark,b", po::bool_switch()->default_value(false), "Benchmark emulator")
+		("no-squaring", po::bool_switch()->default_value(false), "Gamepad range is (already) a square")
+		("nat", po::value<std::vector<std::string>>()->composing(), "SLIRP PortFwd (e.g. 0,tcp,,8080,,http)");
 
-        const std::vector<std::pair<std::string, std::vector<OptionData_t>>> applenOptions = {
-            {"applen",
-             {
-                 {"no-video-update",         no_argument,          NO_VIDEO_UPDATE,  "Do not execute NTSC code"},
-                 {"ev-device-name",          required_argument,    EV_DEVICE_NAME,   "Gamepad ev-device name"},
-             }},
-        };
+		po::options_description disk("Disk");
+		disk.add_options()
+		("d1,1", po::value<std::string>(), "Disk in S6D1 drive")
+		("d2,2", po::value<std::string>(), "Disk in S6D2 drive")
+		("h1", po::value<std::string>(), "Hard Disk in 1st drive")
+		("h2", po::value<std::string>(), "Hard Disk in 2nd drive");
 
-        // clang-format on
+		po::options_description snap("Snapshot");
+		snap.add_options()
+		("state-filename,f", po::value<std::string>(), "Set snapshot filename")
+		("load-state,s", po::value<std::string>(), "Load snapshot from file");
 
-        if (type == OptionsType::sa2)
-        {
-            allOptions.insert(allOptions.end(), sa2Options.begin(), sa2Options.end());
-        }
-        else if (type == OptionsType::applen)
-        {
-            allOptions.insert(allOptions.end(), applenOptions.begin(), applenOptions.end());
-        }
+		po::options_description mem("Memory");
+		mem.add_options()
+		("memclear", po::value<int>(), "Memory initialization pattern [0..7]")
+		("rom", po::value<std::string>(), "Custom 12k/16k ROM")
+		("f8rom", po::value<std::string>(), "Custom 2k ROM");
 
-        std::vector<option> longOptions;
-        std::string shortOptions;
-        extractOptions(allOptions, longOptions, shortOptions);
+		po::options_description audio("Audio");
+		audio.add_options()
+		("no-audio", po::bool_switch()->default_value(false), "Disable audio")
+		("audio-buffer", po::value<unsigned long>()->default_value(options.audioBuffer), "Audio buffer (ms)")
+		("wav-speaker", po::value<std::string>(), "Speaker wav output filename")
+		("wav-mockingboard", po::value<std::string>(), "Mockingboard wav output filename");
 
-        while (true)
-        {
-            int optionIndex = 0;
-            const int c = getopt_long(argc, argv, shortOptions.c_str(), longOptions.data(), &optionIndex);
+		po::options_description sa2("sa2");
+		sa2.add_options()
+		("sdl-driver", po::value<int>(), "SDL driver")
+		("gl-swap", po::value<int>(), "SDL_GL_SwapInterval")
+		("timer", po::bool_switch()->default_value(false), "Synchronise with timer")
+		("no-imgui", po::bool_switch()->default_value(false), "Plain SDL2 renderer")
+		("geometry", po::value<std::string>(), "WxH[+X+Y]")
+		("aspect-ratio", po::bool_switch()->default_value(false), "Always preserve correct aspect ratio")
+		("game-controller", po::value<int>(), "SDL_GameControllerOpen")
+		("game-mapping-file", po::value<std::string>(), "SDL_GameControllerAddMappingsFromFile")
+		("audio-device", po::value<std::string>(), "Audio device name");
 
-            switch (c)
-            {
-            case -1:
-            {
-                if (optind < argc)
-                {
-                    std::cerr << "Uexpected positional argument: '" << argv[optind] << "'" << std::endl << std::endl;
-                    printHelp(allOptions);
-                    return false;
-                }
-                return true;
-            }
-            case '?':
-            {
-                std::cerr << std::endl;
-                printHelp(allOptions);
-                return false;
-            }
-            case 'h':
-            {
-                printHelp(allOptions);
-                return false;
-            }
-            case 'c':
-            {
-                options.configurationFile = optarg;
-                break;
-            }
-            case 'l':
-            {
-                options.log = true;
-                break;
-            }
-            case '1':
-            {
-                options.disk1 = optarg;
-                break;
-            }
-            case '2':
-            {
-                options.disk2 = optarg;
-                break;
-            }
-            case 'f':
-            {
-                options.snapshotFilename = optarg;
-                options.loadSnapshot = false;
-                break;
-            }
-            case 's':
-            {
-                options.snapshotFilename = optarg;
-                options.loadSnapshot = true;
-                break;
-            }
-            case 'q':
-            {
-                options.useQtIni = true;
-                break;
-            }
-            case 'r':
-            {
-                options.registryOptions.emplace_back(optarg);
-                break;
-            }
-            case 'b':
-            {
-                options.benchmark = true;
-                break;
-            }
-            case PAUSED:
-            {
-                options.autoBoot = false;
-                break;
-            }
-            case FIXED_SPEED:
-            {
-                options.fixedSpeed = true;
-                break;
-            }
-            case HEADLESS:
-            {
-                options.headless = true;
-                break;
-            }
-            case NO_SQUARING:
-            {
-                options.paddleSquaring = false;
-                break;
-            }
-            case SLIRP_NAT:
-            {
-                options.natPortFwds.emplace_back(optarg);
-                break;
-            }
-            case DISK_H1:
-            {
-                options.hardDisk1 = optarg;
-                break;
-            }
-            case DISK_H2:
-            {
-                options.hardDisk2 = optarg;
-                break;
-            }
-            case MEM_CLEAR:
-            {
-                const int memclear = std::stoi(optarg);
-                if (memclear >= 0 && memclear < NUM_MIP)
-                {
-                    options.memclear = memclear;
-                }
-                break;
-            }
-            case ROM:
-            {
-                options.customRom = optarg;
-                break;
-            }
-            case F8ROM:
-            {
-                options.customRomF8 = optarg;
-                break;
-            }
-            case NO_AUDIO:
-            {
-                options.noAudio = true;
-                break;
-            }
-            case AUDIO_BUFFER:
-            {
-                options.audioBuffer = std::stoul(optarg);
-                break;
-            }
-            case WAV_SPEAKER:
-            {
-                options.wavFileSpeaker = optarg;
-                break;
-            }
-            case WAV_MOCKINGBOARD:
-            {
-                options.wavFileMockingboard = optarg;
-                break;
-            }
-            case SDL_DRIVER:
-            {
-                options.sdlDriver = std::stoi(optarg);
-                break;
-            }
-            case GL_SWAP:
-            {
-                options.glSwapInterval = std::stoi(optarg);
-                break;
-            }
-            case TIMER:
-            {
-                options.syncWithTimer = true;
-                break;
-            }
-            case NO_IMGUI:
-            {
-                options.imgui = false;
-                break;
-            }
-            case GEOMETRY:
-            {
-                parseGeometry(optarg, options.geometry);
-                break;
-            }
-            case ASPECT_RATIO:
-            {
-                options.aspectRatio = true;
-                break;
-            }
-            case GAME_CONTROLLER:
-            {
-                options.gameControllerIndex = std::stoi(optarg);
-                break;
-            }
-            case MAPPING_FILE:
-            {
-                options.gameControllerMappingFile = optarg;
-                break;
-            }
-            case AUDIO_DEVICE:
-            {
-                options.audioDeviceName = optarg;
-                break;
-            }
-            case NO_VIDEO_UPDATE:
-            {
-                options.noVideoUpdate = true;
-                break;
-            }
-            case EV_DEVICE_NAME:
-            {
-                options.paddleDeviceName = optarg;
-                break;
-            }
-            default:
-            {
-                printHelp(allOptions);
-                return false;
-            }
-            }
-        }
+		po::options_description applen("applen");
+		applen.add_options()
+		("no-video-update", po::bool_switch()->default_value(false), "Do not execute NTSC code")
+		("ev-device-name", po::value<std::string>(), "Gamepad ev-device name");
 
-        return true;
-    }
+		// Compose "all" based on type
+		po::options_description all("All options");
+		all.add(top).add(cfg).add(emu).add(disk).add(snap).add(mem).add(audio);
+		if (type == OptionsType::sa2)      all.add(sa2);
+		else if (type == OptionsType::applen) all.add(applen);
+
+		// For pretty, grouped help output like the original
+		std::vector<std::pair<std::string, po::options_description>> groups{
+			{name, top}, {"Configuration", cfg}, {"Emulator", emu}, {"Disk", disk},
+			{"Snapshot", snap}, {"Memory", mem}, {"Audio", audio}
+		};
+		if (type == OptionsType::sa2)       groups.emplace_back("sa2", sa2);
+		else if (type == OptionsType::applen) groups.emplace_back("applen", applen);
+
+		try
+		{
+			po::variables_map vm;
+
+			// Parse; we don't allow unknown/positional args (to mirror old behavior)
+			po::parsed_options parsed = po::command_line_parser(argc, const_cast<char**>(argv))
+				.options(all)
+				.style(po::command_line_style::default_style |
+					   po::command_line_style::allow_short |
+					   po::command_line_style::short_allow_next)
+				.run();
+
+			// If there are any unrecognized, treat as error with a message close to the old code
+			{
+				// Re-parse allowing unregistered to detect them
+				auto parsed_all = po::command_line_parser(argc, const_cast<char**>(argv))
+					.options(all)
+					.allow_unregistered()
+					.run();
+				auto unrec = po::collect_unrecognized(parsed_all.options, po::exclude_positional);
+				// Remove recognized options themselves (starting with '-' or '--' are fine if known)
+				// Here, if any unrecognized tokens remain that don't look like option keys, error out.
+				for (const auto &tok : unrec)
+				{
+					if (!tok.empty() && tok[0] != '-')
+					{
+						std::cerr << "Uexpected positional argument: '" << tok << "'\n";
+						print_help(groups);
+						return false;
+					}
+				}
+			}
+
+			po::store(parsed, vm);
+			po::notify(vm);
+
+			// help
+			if (vm.count("help"))
+			{
+				print_help(groups);
+				return false;
+			}
+
+			// ---- Map to EmulatorOptions ----
+
+			// Configuration
+			if (vm.count("conf"))            options.configurationFile = vm["conf"].as<std::string>();
+			options.useQtIni                  = vm["qt-ini"].as<bool>();
+			if (vm.count("registry"))        options.registryOptions = vm["registry"].as<std::vector<std::string>>();
+
+			// Emulator
+			options.log                       = vm["log"].as<bool>();
+			if (vm["paused"].as<bool>())     options.autoBoot = false;
+			options.fixedSpeed                = vm["fixed-speed"].as<bool>();
+			options.headless                  = vm["headless"].as<bool>();
+			options.benchmark                 = vm["benchmark"].as<bool>();
+			if (vm["no-squaring"].as<bool>()) options.paddleSquaring = false;
+			if (vm.count("nat"))              options.natPortFwds = vm["nat"].as<std::vector<std::string>>();
+
+			// Disks
+			if (vm.count("d1"))               options.disk1 = vm["d1"].as<std::string>();
+			if (vm.count("d2"))               options.disk2 = vm["d2"].as<std::string>();
+			if (vm.count("h1"))               options.hardDisk1 = vm["h1"].as<std::string>();
+			if (vm.count("h2"))               options.hardDisk2 = vm["h2"].as<std::string>();
+
+			// Snapshot: emulate old mutual exclusivity by precedence:
+			if (vm.count("state-filename"))
+			{
+				options.snapshotFilename = vm["state-filename"].as<std::string>();
+				options.loadSnapshot = false;
+			}
+			if (vm.count("load-state"))
+			{
+				options.snapshotFilename = vm["load-state"].as<std::string>();
+				options.loadSnapshot = true;
+			}
+
+			// Memory
+			if (vm.count("memclear"))
+			{
+				const int memclear = vm["memclear"].as<int>();
+				if (memclear >= 0 && memclear < NUM_MIP)
+					options.memclear = memclear;
+				else
+				{
+					std::cerr << "memclear must be in [0.." << (NUM_MIP - 1) << "]\n";
+					print_help(groups);
+					return false;
+				}
+			}
+			if (vm.count("rom"))              options.customRom = vm["rom"].as<std::string>();
+			if (vm.count("f8rom"))            options.customRomF8 = vm["f8rom"].as<std::string>();
+
+			// Audio
+			options.noAudio                   = vm["no-audio"].as<bool>();
+			options.audioBuffer               = vm["audio-buffer"].as<unsigned long>();
+			if (vm.count("wav-speaker"))      options.wavFileSpeaker = vm["wav-speaker"].as<std::string>();
+			if (vm.count("wav-mockingboard")) options.wavFileMockingboard = vm["wav-mockingboard"].as<std::string>();
+
+			// sa2-only
+			if (type == OptionsType::sa2)
+			{
+				if (vm.count("sdl-driver"))       options.sdlDriver = vm["sdl-driver"].as<int>();
+				if (vm.count("gl-swap"))          options.glSwapInterval = vm["gl-swap"].as<int>();
+				if (vm["timer"].as<bool>())       options.syncWithTimer = true;
+				if (vm["no-imgui"].as<bool>())    options.imgui = false;
+				if (vm.count("geometry"))
+				{
+					parseGeometry(vm["geometry"].as<std::string>(), options.geometry);
+				}
+				options.aspectRatio               = vm["aspect-ratio"].as<bool>();
+				if (vm.count("game-controller"))  options.gameControllerIndex = vm["game-controller"].as<int>();
+				if (vm.count("game-mapping-file"))options.gameControllerMappingFile = vm["game-mapping-file"].as<std::string>();
+				if (vm.count("audio-device"))     options.audioDeviceName = vm["audio-device"].as<std::string>();
+			}
+
+			// applen-only
+			if (type == OptionsType::applen)
+			{
+				options.noVideoUpdate             = vm["no-video-update"].as<bool>();
+				if (vm.count("ev-device-name"))   options.paddleDeviceName = vm["ev-device-name"].as<std::string>();
+			}
+
+			return true;
+		}
+		catch (const std::exception &e)
+		{
+			std::cerr << e.what() << "\n";
+			print_help(groups);
+			return false;
+		}
+	}
 
 } // namespace common2
