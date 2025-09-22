@@ -174,16 +174,14 @@ if(PP_SUBDIRS AND NOT CMAKE_GENERATOR STREQUAL "Xcode")
     if(EXISTS "${srcdir}")
       get_filename_component(dstname "${srcdir}" NAME)
 
-      # Build-time bundle check:
-      # - If a real .app exists, copy into Contents/Resources (shouldn't happen)
-      # - Otherwise, copy beside the executable
-      set(_dst_root
-        "$<IF:$<BOOL:$<TARGET_BUNDLE_DIR:sa2>>,
-             $<TARGET_BUNDLE_CONTENT_DIR:sa2>/Resources,
-             $<TARGET_FILE_DIR:sa2>>")
+      if(APPLE)     # only if not using Xcode above
+        set(_dst_root "$<TARGET_BUNDLE_CONTENT_DIR:sa2>/Resources")
+      else()
+        set(_dst_root "$<TARGET_FILE_DIR:sa2>")
+      endif()
 
       add_custom_command(TARGET sa2 POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${_dst_root}"
+        #COMMAND ${CMAKE_COMMAND} -E echo "Copying: ${srcdir} -> ${_dst_root}/${dstname}"
         COMMAND ${CMAKE_COMMAND} -E copy_directory "${srcdir}" "${_dst_root}/${dstname}"
         VERBATIM)
     endif()
