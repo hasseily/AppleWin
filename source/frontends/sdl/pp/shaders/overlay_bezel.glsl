@@ -45,7 +45,7 @@ void main()
 #elif defined(FRAGMENT)
 
 uniform sampler2D uMainTex;  // Overlay texture
-uniform sampler2D uA2Tex;    // Apple 2 output texture
+uniform sampler2D uA2Tex;    // Apple 2 output texture with GL_MIRRORED_REPEAT wrap
 
 uniform sampler2D uGlassTex;    // Glass overlay texture (the top layer)
 uniform float uGlassThickness;  // 0 means no glass applied
@@ -91,7 +91,12 @@ void main() {
                 }
             }
 
-            vec4 a2Color = textureLod(uA2Tex, a2TexCoord, uReflectionBlur);
+			bool outOfBounds =
+				any(lessThan(a2TexCoord, vec2(0.0))) ||
+				any(greaterThan(a2TexCoord, vec2(1.0)));
+			vec4 a2Color = outOfBounds
+							? textureLod(uA2Tex, a2TexCoord, uReflectionBlur)
+							: vec4(0.,0.,0.,1.);
 
             // Combine the mainColor over the a2Color, forcing alpha=1.0
             // Standard "over" alpha compositing: final = foreground * a + background * (1-a)
