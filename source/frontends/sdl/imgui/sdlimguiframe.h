@@ -41,8 +41,6 @@ namespace sa2
         bool myPresenting;   // VideoPresentScreen() is NOT REENTRANT
         bool myShowMouseCursor;
 
-		bool ppIsOpen = false;	// postprocessor imgui settings
-
         SDL_GLContext myGLContext;
         ImTextureID myTexture;
 

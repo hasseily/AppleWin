@@ -4,6 +4,7 @@
 #include "frontends/sdl/processfile.h"
 #include "frontends/sdl/sdirectsound.h"
 #include "frontends/sdl/sdlframe.h"
+#include "frontends/sdl/pp/postprocessor.h"
 #include "linux/registryclass.h"
 #include "linux/version.h"
 #include "linux/cassettetape.h"
@@ -283,7 +284,7 @@ namespace sa2
                     ImGui::Separator();
 
                     ImGui::LabelText("Slot", "Card");
-                    for (size_t slot = SLOT1; slot < NUM_SLOTS; ++slot)
+                    for (uint32_t slot = SLOT1; slot < NUM_SLOTS; ++slot)
                     {
                         const SS_CARDTYPE current = cardManager.QuerySlot(slot);
                         comboIterator(
@@ -412,14 +413,14 @@ namespace sa2
                                 card2->GetLightStatus(statuses + 0, statuses + 1);
                                 const UINT firmware = card2->GetCurrentFirmware();
 
-                                for (size_t drive = DRIVE_1; drive < NUM_DRIVES; ++drive)
+                                for (uint32_t drive = DRIVE_1; drive < NUM_DRIVES; ++drive)
                                 {
                                     ImGui::PushID(drive);
                                     ImGui::TableNextRow();
                                     ImGui::TableNextColumn();
                                     ImGui::Text("%d", slot);
                                     ImGui::TableNextColumn();
-                                    ImGui::Text("%zu", drive + 1);
+                                    ImGui::Text("%d", drive + 1);
                                     ImGui::TableNextColumn();
                                     ImGui::Text("%d", firmware);
                                     ImGui::TableNextColumn();
@@ -475,14 +476,14 @@ namespace sa2
                                     dynamic_cast<HarddiskInterfaceCard *>(cardManager.GetObj(slot));
                                 Disk_Status_e disk1Status_;
                                 pHarddiskCard->GetLightStatus(&disk1Status_);
-                                for (size_t drive = HARDDISK_1; drive < NUM_HARDDISKS; ++drive)
+                                for (uint32_t drive = HARDDISK_1; drive < NUM_HARDDISKS; ++drive)
                                 {
                                     ImGui::PushID(drive);
                                     ImGui::TableNextRow();
                                     ImGui::TableNextColumn();
                                     ImGui::Text("%d", slot);
                                     ImGui::TableNextColumn();
-                                    ImGui::Text("%zu", drive + 1);
+                                    ImGui::Text("%d", drive + 1);
                                     ImGui::TableNextColumn();
                                     ImGui::TextUnformatted("HD");
                                     ImGui::TableNextColumn();
@@ -669,6 +670,8 @@ namespace sa2
                         setVideoStyle(video, VS_HALF_SCANLINES, scanLines);
                         frame->ApplyVideoModeChange();
                     }
+					ImGui::SameLine();
+					HelpMarker("Do not use both this feature and the advanced CRT shader scanlines");
 
                     bool verticalBlend = video.IsVideoStyle(VS_COLOR_VERTICAL_BLEND);
                     if (ImGui::Checkbox("Vertical blend", &verticalBlend))
@@ -683,6 +686,19 @@ namespace sa2
                         video.SetVideoRefreshRate(hertz50 ? VR_50HZ : VR_60HZ);
                         frame->ApplyVideoModeChange();
                     }
+
+					auto pp = PostProcessor::GetInstance();
+					bool isPP = pp->IsActive();
+					if (ImGui::Checkbox("Post Processing CRT Shader", &isPP))
+					{
+						pp->SetActive(isPP);
+					}
+					if (isPP)
+					{
+						ImGui::SameLine();
+						if (ImGui::Button("PP Settings"))
+						pp->bImguiWindowIsOpen = true;
+					}
 
                     ImGui::EndTabItem();
                 }
@@ -699,7 +715,7 @@ namespace sa2
                         const float remaining = float(info.size - (info.pos + 1)) / float(info.frequency);
                         const float fraction = float(info.pos + 1) / float(info.size);
                         char buf[32];
-                        sprintf(buf, "-%.1f s", remaining);
+						snprintf(buf, sizeof(buf), "-%.1f s", remaining);
                         const ImU32 color = info.bit ? IM_COL32(200, 0, 0, 100) : IM_COL32(0, 200, 0, 100);
 
                         ImGui::PushStyleColor(ImGuiCol_PlotHistogram, color);
@@ -735,12 +751,12 @@ namespace sa2
                 {
                     if (ImGui::BeginTabBar("Uthernet"))
                     {
-                        for (size_t slot = SLOT1; slot < NUM_SLOTS; ++slot)
+                        for (uint32_t slot = SLOT1; slot < NUM_SLOTS; ++slot)
                         {
                             const SS_CARDTYPE card = cardManager.QuerySlot(slot);
                             if (card == CT_Uthernet || card == CT_Uthernet2)
                             {
-                                const std::string slotNumber = StrFormat("Slot %" SIZE_T_FMT, slot);
+                                const std::string slotNumber = StrFormat("Slot %" "d", slot);
                                 if (ImGui::BeginTabItem(slotNumber.c_str()))
                                 {
                                     ImGui::LabelText("Card", "%s", getCardName(card).c_str());
@@ -952,7 +968,7 @@ namespace sa2
                 banks.push_back({mem, 0, _6502_MEM_LEN, "Memory"});
                 banks.push_back({MemGetCxRomPeripheral(), _6502_IO_BEGIN, 4 * 1024, "Cx ROM"});
 
-                size_t i = 0;
+                uint32_t i = 0;
                 void *bank;
                 while ((bank = MemGetBankPtr(i, true)))
                 {

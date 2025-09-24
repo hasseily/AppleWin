@@ -198,8 +198,13 @@ namespace sa2
 			{
 				UpdateTexture();
 				auto contentSize = ImGui::GetContentRegionAvail();
-				postProcessor->Render((int)contentSize.x, (int)contentSize.y, myTexture, (uint32_t)myBorderlessWidth, (uint32_t)myBorderlessHeight);
-				ImGui::Image(postProcessor->GetTextureId(), contentSize, uv0, uv1);
+				if (postProcessor->IsActive())
+				{
+					postProcessor->Render((int)contentSize.x, (int)contentSize.y, myTexture, (uint32_t)myBorderlessWidth, (uint32_t)myBorderlessHeight);
+					ImGui::Image(postProcessor->GetTextureId(), contentSize, uv0, uv1);
+				} else {
+					ImGui::Image(myTexture, contentSize, uv0, uv1);
+				}
 			}
 			ImGui::End();
 		}
@@ -217,8 +222,13 @@ namespace sa2
 				// scale & center
 				correctAspectRatio(p_min, p_max, myOriginalAspectRatio);
 			}
-			postProcessor->Render((int)(p_max.x - p_min.x), (int)(p_max.y - p_min.y), myTexture, (uint32_t)myBorderlessWidth, (uint32_t)myBorderlessHeight);
-			ImGui::GetBackgroundDrawList()->AddImage(postProcessor->GetTextureId(), p_min, p_max, uv0, uv1);
+			if (postProcessor->IsActive())
+			{
+				postProcessor->Render((int)(p_max.x - p_min.x), (int)(p_max.y - p_min.y), myTexture, (uint32_t)myBorderlessWidth, (uint32_t)myBorderlessHeight);
+				ImGui::GetBackgroundDrawList()->AddImage(postProcessor->GetTextureId(), p_min, p_max, uv0, uv1);
+			} else {
+				ImGui::GetBackgroundDrawList()->AddImage(myTexture, p_min, p_max, uv0, uv1);
+			}
 		}
 	}
 
@@ -255,8 +265,7 @@ namespace sa2
             // "this" is a bit circular
             mySettings.show(this, myDebuggerFont);
             DrawAppleVideo();
-			if (ppIsOpen)
-				PostProcessor::GetInstance()->DisplayImGuiWindow(&ppIsOpen);
+			PostProcessor::GetInstance()->RenderImGuiWindow();
 
             ImGui::Render();
             ClearBackground();
@@ -317,7 +326,8 @@ namespace sa2
                     mySettings.toggleSettings();
 				} else if (modifiers == KMOD_SHIFT)
 				{
-					ppIsOpen = !ppIsOpen;
+					auto pp = PostProcessor::GetInstance();
+					pp->bImguiWindowIsOpen = !pp->bImguiWindowIsOpen;
 				}
                 break;
             }
@@ -365,6 +375,6 @@ namespace sa2
     void SDLImGuiFrame::ToggleMouseCursor()
     {
         myShowMouseCursor = !myShowMouseCursor;
-    }
+	}
 
 } // namespace sa2

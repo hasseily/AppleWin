@@ -132,7 +132,25 @@ namespace sa2 {
 		}
 		FBO_prevFrame = UINT_MAX;
 	}
-	
+
+	//////////////////////////////////////////////////////////////////////////
+	// Utility methods
+	//////////////////////////////////////////////////////////////////////////
+	///
+	void HelpMarker(const char *desc)
+	{
+		ImGui::SameLine();
+		ImGui::TextDisabled("(?)");
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::BeginTooltip();
+			//ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+			ImGui::TextEx(desc);
+			//ImGui::PopTextWrapPos();
+			ImGui::EndTooltip();
+		}
+	}
+
 	//////////////////////////////////////////////////////////////////////////
 	// Main methods
 	//////////////////////////////////////////////////////////////////////////
@@ -409,8 +427,8 @@ namespace sa2 {
 		// Choose the shader
 		switch (p_i_postprocessingLevel)
 		{
-			case 0:	// basic passthrough shader with optional scanlines
-			case 1:
+			case 0: // transform passthrough shader
+			case 1: // transform passthrough shader with optional scanlines
 				shaderProgram = v_ppshaders.at(0);
 				shaderProgram.Use();
 				break;
@@ -464,7 +482,6 @@ namespace sa2 {
 		}
 		// common
 		shaderProgram.SetUniform("POSTPROCESSING_LEVEL", p_i_postprocessingLevel);
-		shaderProgram.SetUniform("TextureSize", glm::vec2(texWidth, texHeight));
 	}
 	
 	void PostProcessor::RegenerateFBOs()
@@ -601,7 +618,7 @@ namespace sa2 {
 
 		// Now determine the quad transformations as necessary, to send to the vertex shader
 		glm::mat4 _transform = glm::mat4(1.0f);
-		if (bCRTFillWindow && p_i_postprocessingLevel > 1)
+		if (bCRTFillWindow)
 		{
 			// For full-window
 			quadWidth = viewportWidth;
@@ -624,8 +641,8 @@ namespace sa2 {
 		glBindTexture(GL_TEXTURE_2D, inTextureId);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glGenerateMipmap(GL_TEXTURE_2D);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 		glActiveTexture(GL_TEXTURE0);
 
 		// Always bind the previous frame texture to its dedicated texture unit
@@ -669,8 +686,9 @@ namespace sa2 {
 		shaderProgram.SetUniform("uTransform", mTransform);		// in the vertex shader
 		shaderProgram.SetUniform("iFrameCount", frame_count);
 		shaderProgram.SetUniform("bHalveFrameRate", bHalveFramerate);
+		shaderProgram.SetUniform("TextureSize", glm::vec2(texWidth, texHeight));
 		// Only used for the full PP shader
-		if (p_i_postprocessingLevel > 1) {
+		if (p_i_postprocessingLevel == 2) {
 			shaderProgram.SetUniform("OutputSize", glm::vec2(quadWidth, quadHeight));
 			shaderProgram.SetUniform("ScanlineCount", inputTexHeight);
 		}
@@ -687,7 +705,7 @@ namespace sa2 {
 		
 		// DO NOT COPY INTO THE PREVIOUS FRAME TEXTURE UNLESS IT IS REQUIRED
 		// THIS _DRAMATICALLY_ REDUCES THE FPS ON A RASPBERRY PI
-		if ((p_f_ghostingPercent > 0.0000001f && p_i_postprocessingLevel > 1) || bHalveFramerate)
+		if ((p_f_ghostingPercent > 0.0000001f && p_i_postprocessingLevel == 2) || bHalveFramerate)
 		{
 
 			// Now copy the screen texture to prevFrame_texture_id, to use it for the next frame
@@ -775,7 +793,7 @@ namespace sa2 {
 		bezelSize = glm::vec2(1.0f, 1.0f);
 		
 		p_b_smoothCorner = false;
-		p_b_useOKlab = false;
+		p_b_useOKlab = true;
 		p_b_slot = false;
 		p_f_barrelDistortion = 0.0f;
 		p_f_bgr = 0.0f;
@@ -805,7 +823,7 @@ namespace sa2 {
 		p_i_cSpace = 0;
 		p_i_maskType = 0;
 		p_i_postprocessingLevel = 0;
-		p_i_scanlineType = 2;
+		p_i_scanlineType = 0;
 		p_f_ghostingPercent = 0;
 		p_f_phosphorBlur = 0.0f;
 		p_b_phosphorGlow = 0.0f;
@@ -826,14 +844,18 @@ namespace sa2 {
 		bImGuiLockZoom = false;
 	}
 	
-	void PostProcessor::DisplayImGuiWindow(bool* p_open)
+	void PostProcessor::RenderImGuiWindow()
 	{
-		bImguiWindowIsOpen = p_open;
-		if (p_open)
+		if (bImguiWindowIsOpen)
 		{
 			ImGui::SetNextWindowSizeConstraints(ImVec2(450, 400), ImVec2(FLT_MAX, FLT_MAX));
-			ImGui::Begin("Post Processing CRT Shader", p_open);
-			
+			ImGui::Begin("Post Processing CRT Shader", &bImguiWindowIsOpen);
+			ImGui::Checkbox("Enable Post Processing", &bIsActive);
+			if (!bIsActive) {
+				ImGui::End();
+				return;
+			}
+
 			if (ImGui::Button("Reset to defaults"))
 			{
 				ResetToDefaults();
@@ -886,16 +908,14 @@ namespace sa2 {
 			// PP Type
 			ImGui::Separator();
 			ImGui::Text("[ POSTPROCESSING LEVEL ]");
-			ImGui::RadioButton("None##PPLEVEL", &p_i_postprocessingLevel, 0); ImGui::SameLine();
-			ImGui::SetItemTooltip("No postprocessing, optional bezel. Fastest!");
-			ImGui::RadioButton("Scanline only##PPLEVEL", &p_i_postprocessingLevel, 1); ImGui::SameLine();
-			ImGui::SetItemTooltip("Simple alternating scanlines, optional bezel. Fast.");
+			ImGui::RadioButton("Transforms and Overlays##PPLEVEL", &p_i_postprocessingLevel, 0); ImGui::SameLine();
+			HelpMarker("Geometry transformations and bezels.\nLow performance impact.");
 			ImGui::RadioButton("Full CRT##PPLEVEL", &p_i_postprocessingLevel, 2);
-			ImGui::SetItemTooltip("The one and only Super Duper CRT shader. Customize away!");
+			HelpMarker("All CRT shader capabilities.\nPotentially high performance impact.");
 			ImGui::Separator();
 			ImGui::Text("[ BASE INTEGER SCALE ]");
 			ImGui::Checkbox("Auto", &bAutoScale);
-			ImGui::SetItemTooltip("Automatically selects the largest output possible, with pixel perfect scaling");
+			HelpMarker("Automatically selects the largest output possible, with pixel perfect scaling");
 			if (bAutoScale)
 				ImGui::BeginDisabled();
 			ImGui::SliderInt("Integer Scale", &integer_scale, 1, max_integer_scale, "%d");
@@ -950,7 +970,7 @@ namespace sa2 {
 			}
 			p_b_outlineQuad = false;
 			ImGui::SliderFloat("Bezel Reflection", &p_f_bezelReflection, 0.f, 0.5f, "%.3f");
-			ImGui::SetItemTooltip("WARNING: Tricky to get right. Read on for more info: \n \
+			HelpMarker("WARNING: Tricky to get right. Read on for more info: \n\
 In order to make a very fast fake reflection technique, we mirror the Apple 2\n\
 texture with blur, and superpose it onto the overlay only where the bezel has\n\
 some transparency (>0, <1). Since each overlay is different, and your choice\n\
@@ -971,7 +991,7 @@ and strong reflection, then dial blur up and reflection down.");
 			
 			ImGui::Text("[ FRAME MERGING ]");
 			ImGui::Checkbox("Merge Frame Pairs", &bHalveFramerate);
-			ImGui::SetItemTooltip("WARNING: SIGNIFICANT FPS IMPACT!\n\
+			HelpMarker("WARNING: SIGNIFICANT FPS IMPACT!\n\
 Merges every pair of even and odd frames.\n\
 Effectively halves the frame rate\n\
 but removes any flickering associated\n\
@@ -991,16 +1011,19 @@ with page flipping images");
 				{
 					p_f_scanlineWeight = 1.0f;
 				}
-				ImGui::SetItemTooltip("You should generally tweak color settings (further down) when using the complex scanline type");
+				HelpMarker("WARNING: Uncheck \"50% Scanlines\" from the Video Settings (F8)\n\
+if using these scanlines\n\
+You should generally tweak color settings (further down)\n\
+when using the complex scanline type");
 				if (p_i_scanlineType >= 2)
 				{
 					ImGui::SliderFloat("Scanline Weight", &p_f_scanlineWeight, 0.0f, 2.0f, "%.2f");
 					ImGui::SliderFloat("Scanline Speed", &p_f_scanSpeed, 0.0f, 2.0f, "%.2f");
 					ImGui::SliderFloat("Film Grain", &p_f_filmGrain, 0.0f, 1.0f, "%.2f");
 					ImGui::SliderFloat("Vignette Weight", &p_f_vignetteWeight, 0.0f, 5.0f, "%.2f");
-					ImGui::SetItemTooltip("Darker sides of the scanlines, works better when there's distortion");
+					HelpMarker("Darker sides of the scanlines, works better when there's distortion");
 					ImGui::SliderFloat("Interlacing", &p_f_interlace, 0.0f, 2.0f, "%.2f");
-					ImGui::SetItemTooltip("If you really want to feel the pain of bad refresh rates");
+					HelpMarker("If you really want to feel the pain of bad refresh rates");
 				}
 				
 				ImGui::Separator();
@@ -1008,10 +1031,10 @@ with page flipping images");
 				// Blurring and Ghosting
 				ImGui::Text("[ BLUR & GHOSTING ]");
 				ImGui::SliderFloat("Phosphor Blur", &p_f_phosphorBlur, 0.0, 2.0, "%.2f");
-				ImGui::SetItemTooltip("Some screen blur");
+				HelpMarker("Some screen blur");
 				ImGui::SameLine();ImGui::Checkbox("Glow", &p_b_phosphorGlow);
-				ImGui::SetItemTooltip("Some screen blur");
-				
+				HelpMarker("Some screen blur");
+
 				// We'll use a normalized slider value in [0,1]
 				static float _ghostingSV = 100.0f * (1.0f - pow(1.0f - p_f_ghostingPercent / 100.0f, 0.5f));
 				if (p_f_ghostingPercent < 0.001)
@@ -1022,7 +1045,7 @@ with page flipping images");
 					// The mapping (1 - (1-x)^2) gives finer control near 100.
 					p_f_ghostingPercent = 100.0f - 100.0f * powf(1.0f - _ghostingSV/100.f, 2.0f);
 				}
-				ImGui::SetItemTooltip("WARNING: SIGNIFICANT FPS IMPACT! \n\
+				HelpMarker("WARNING: SIGNIFICANT FPS IMPACT! \n\
 Mix in a bit of ghosting to smooth animations. \n\
 Overdo it to emulate the Apple /// monitor!\n\
 Works best at low frame rates, below 60 FPS.\n\
@@ -1066,7 +1089,7 @@ Needs more ghosting for fast frame rates.");
 				// Color Settings
 				ImGui::Text("[ COLOR SETTINGS ]");
 				ImGui::Checkbox("Use OKlab instead of linear RGB", &p_b_useOKlab);
-				ImGui::SetItemTooltip("OKlab is a smoother color space than linear RGB.");
+				HelpMarker("OKlab is a smoother color space than linear RGB.");
 				ImGui::DragFloat("Brightness", &p_f_brightness, 0.01f, 0.0f, 100.0f, "%.2f");
 				ImGui::DragFloat("Contrast", &p_f_contrast, 0.01f, 0.0f, 100.0f, "%.2f");
 				ImGui::DragFloat("Black Level", &p_f_black, 0.01f, -1.0f, 1.00f, "%.2f");
@@ -1085,7 +1108,7 @@ Needs more ghosting for fast frame rates.");
 				// Convergence Settings
 				ImGui::Text("[ CONVERGENCE SETTINGS ]");
 				ImGui::SliderFloat("Convergence Overall Strength", &p_f_cStr, 0.0f, 0.5f, "%.2f");
-				ImGui::SetItemTooltip("WARNING: Some FPS impact.");
+				HelpMarker("WARNING: Some FPS impact.");
 				ImGui::SliderFloat("Convergence Red X-Axis", &p_f_convR, -3.0f, 3.0f, "%.2f");
 				ImGui::SliderFloat("Convergence Green X-axis", &p_f_convG, -3.0f, 3.0f, "%.2f");
 				ImGui::SliderFloat("Convergence Blue X-Axis", &p_f_convB, -3.0f, 3.0f, "%.2f");
@@ -1095,4 +1118,9 @@ Needs more ghosting for fast frame rates.");
 			ImGui::End();
 		}
 	}
+	
+	void PostProcessor::SetActive(bool isActive) { 
+		bIsActive = isActive;
+	}
+	
 } // namespace sa2

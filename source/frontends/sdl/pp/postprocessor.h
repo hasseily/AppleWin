@@ -36,8 +36,8 @@ namespace sa2 {
 
 		uint32_t GetTextureId() { return texture_id; };
 		void Render(int outWidth, int outHeight, uint32_t inputTexId, uint32_t inputTexWidth, uint32_t inputTexHeight);
-		void DisplayImGuiWindow(bool* p_open);
-		
+		void RenderImGuiWindow();
+
 		nlohmann::json SerializeState();
 		void DeserializeState(const nlohmann::json &jsonState);
 
@@ -48,9 +48,14 @@ namespace sa2 {
 		// is created
 		const bool ShouldFrameBeSkipped() { return (bHalveFramerate && (frame_count & 1) == 1); };
 		const bool IsFrameRateHalved() { return bHalveFramerate; };
-		
+
+		const bool IsActive() { return (bIsActive); };
+		void SetActive(bool isActive);
+
 		// public properties
 		std::vector<Shader>v_ppshaders;
+		bool bImguiWindowIsOpen = false;
+
 	private:
 		void Initialize();
 		void SaveState(std::string filePath);
@@ -79,9 +84,9 @@ namespace sa2 {
 		uint32_t prevFrame_texture_id = UINT_MAX;	// The previous frame as a texture
 		
 		int maxTexSize = 0;	// maximum texture size, depends on GL implementation
-		
-		bool bImguiWindowIsOpen = false;
-		
+
+		bool bIsActive = false;
+
 		Shader shaderProgram;		// PP shader program
 		Shader shaderProgramBezel;	// Bezel shader program
 		
@@ -121,7 +126,7 @@ namespace sa2 {
 		glm::vec2 bezelSize = glm::vec2(1.0f, 1.0f);
 		
 		// Shader parameter variables
-		bool p_b_useOKlab = false;
+		bool p_b_useOKlab = true;
 		bool p_b_smoothCorner = false;
 		bool p_b_slot = false;
 		bool p_b_phosphorGlow = false;
@@ -153,7 +158,7 @@ namespace sa2 {
 		int p_i_cSpace = 0;
 		int p_i_maskType = 0;
 		int p_i_postprocessingLevel = 0;
-		int p_i_scanlineType = 2;
+		int p_i_scanlineType = 0;
 		float p_f_ghostingPercent = 0;	// Percentage of ghosting of previous frame. 0 means no ghosting
 		float p_f_phosphorBlur = 0.0f;	// blur modifier
 		glm::vec2 p_v_warp = glm::vec2(0.0f, 0.0f);	// curvature
