@@ -214,7 +214,7 @@ namespace sa2
 
 			// draw on the background
 			ImGuiIO &io = ImGui::GetIO();
-			ImVec2 p_min(0, myFullscreen ? 0 : menuBarHeight);
+			ImVec2 p_min(0, menuBarHeight);
 			ImVec2 p_max = io.DisplaySize;
 
 			if (myPreserveAspectRatio)
