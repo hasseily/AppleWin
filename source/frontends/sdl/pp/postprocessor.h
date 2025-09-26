@@ -96,12 +96,16 @@ namespace sa2 {
 		ImageAsset bezelImageAsset;
 		ImageAsset bezelGlassImageAsset;
 		
-		int viewportWidth = 0, viewportHeight = 0;
+		int requestedWidth = 0, requestedHeight = 0;	// requested size
+		int viewportWidth = 0, viewportHeight = 0;		// actual size
 		int quadWidth = 0, quadHeight = 0;
 		int texWidth = 0, texHeight = 0;
 		int prev_texWidth = INT_MAX, prev_texHeight = INT_MAX;
 		uint32_t inTextureId = UINT_MAX;	// cached input texture id to check if it's changed
 
+		// If sizes change, regenerate FBO
+		bool bShouldRegenFBO = false;
+		
 		// The transform matrix for the A2 texture quad
 		glm::mat4 mTransform = glm::mat4(1.0f);
 		

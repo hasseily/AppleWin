@@ -25,25 +25,25 @@
 namespace sa2 {
 	// below because "The declaration of a static data member in its class definition is not a definition"
 	PostProcessor* PostProcessor::s_instance;
-	
+
 	// The PostProcessor will take any texture that's in slot _PP_INPUT_TEXTURE_UNIT and apply the
 	// postprocessing shader on it.
 	// It always dynamically calculates the texture's size and properly scales it up in integer steps
 	// (or down in fractional steps).
-	
+
 	// The PostProcessor shader has 3 modes of operation:
 	// - A passthrough mode
 	// - A simple scanline mode that makes every other scanline black
 	// - A full shader mode with a kitchensink of features
-	
+
 	// To make it more optimal for low end devices that may not approve of the full shader,
 	// the passthrough mode uses a basic passthrough shader instead of the full one,
 	// although the full shader can handle passthrough as well.
-	
+
 	//////////////////////////////////////////////////////////////////////////
 	// Basic singleton methods
 	//////////////////////////////////////////////////////////////////////////
-	
+
 	void PostProcessor::Initialize()
 	{
 		if (quadVAO == UINT_MAX)
@@ -61,10 +61,10 @@ namespace sa2 {
 				-1.0f,  1.0f,        0.0f, 1.0f,   // Bottom-left
 				1.0f,  1.0f,        1.0f, 1.0f    // Bottom-right
 			};
-			
+
 			glGenVertexArrays(1, &quadVAO);
 			glGenBuffers(1, &quadVBO);
-			
+
 			glBindVertexArray(quadVAO);
 			glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
 			glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
@@ -76,7 +76,7 @@ namespace sa2 {
 			// Attribute 1: texture coordinates (2 floats)
 			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
 			glEnableVertexAttribArray(1);
-			
+
 			// Unbind for cleanliness
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 			glBindVertexArray(0);
@@ -85,9 +85,9 @@ namespace sa2 {
 				std::cerr << "OpenGL error PP Initialize: " << glerr << std::endl;
 			}
 		}
-		
+
 		glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTexSize);
-		
+
 		// PP shader list
 		v_ppshaders.clear();
 		Shader shader_basic = Shader();
@@ -97,16 +97,17 @@ namespace sa2 {
 		shader_pp.Build("shaders/a2video_postprocess.glsl", "shaders/a2video_postprocess.glsl");
 		v_ppshaders.push_back(shader_pp);
 		memset(preset_name_buffer, 0, sizeof(preset_name_buffer));
-		
+
 		//Bezel shader
 		shaderProgramBezel = Shader();
 		shaderProgramBezel.Build("shaders/overlay_bezel.glsl", "shaders/overlay_bezel.glsl");
 
-		viewportWidth = 100;
-		viewportHeight = 100;
+		viewportWidth = requestedWidth = 560;
+		viewportHeight = requestedHeight = 384;
 		RegenerateFBOs();
+		ResetToDefaults();
 	}
-	
+
 	PostProcessor::~PostProcessor()
 	{
 		if (quadVAO != UINT_MAX)
@@ -276,7 +277,7 @@ namespace sa2 {
 		};
 		return jsonState;
 	}
-	
+
 	void PostProcessor::DeserializeState(const nlohmann::json &jsonState)
 	{
 		std::strncpy(preset_name_buffer, jsonState.value("preset_name", preset_name_buffer).c_str(), sizeof(preset_name_buffer) - 1);
@@ -340,9 +341,9 @@ namespace sa2 {
 		p_v_reflectionTranslation.x = jsonState.value("p_v_reflectionTranslationX", p_v_reflectionTranslation.x);
 		p_v_reflectionTranslation.y = jsonState.value("p_v_reflectionTranslationY", p_v_reflectionTranslation.y);
 		p_f_glassThickness = jsonState.value("p_f_glassThickness", p_f_glassThickness);
-		
+
 	}
-	
+
 	void PostProcessor::SaveState(std::string filePath) {
 		nlohmann::json jsonState = SerializeState();
 		std::ofstream file(filePath);
@@ -351,7 +352,7 @@ namespace sa2 {
 			file.close();
 		}
 	}
-	
+
 	void PostProcessor::LoadState(std::string filePath) {
 		std::ifstream file(filePath);
 		nlohmann::json jsonState;
@@ -360,7 +361,7 @@ namespace sa2 {
 			DeserializeState(jsonState);
 		}
 	}
-	
+
 	void PostProcessor::LoadSelectedBezel()
 	{
 		std::string _pathStr = std::string(APP_BASE_PATH).append("assets/bezels/" + selectedBezelFile);
@@ -375,7 +376,7 @@ namespace sa2 {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		}
 		bezelImageAsset.AssignByFilename(_pathStr.c_str());
-		
+
 		// check if there's a .glass filename as well
 		auto pos = _pathStr.find_last_of('.');	// there's always a dot
 		_pathStr.replace(pos, 1, ".glass.");
@@ -397,22 +398,22 @@ namespace sa2 {
 			bezelGlassImageAsset.image_xcount = 0;
 			bezelGlassImageAsset.image_ycount = 0;
 		}
-		
+
 		glActiveTexture(GL_TEXTURE0);
 	}
-	
+
 	int PostProcessor::PopulateBezelFiles(std::vector<std::string>& _bezelFiles, const std::string& _selectedBezelFile) {
 		int _selIdx = 0;
 		_bezelFiles.clear();
 		_bezelFiles.push_back(_PP_NO_BEZEL_FILENAME);  // Default for no bezel
-		
+
 		// populate bezel files
 		for (const auto& entry : std::filesystem::directory_iterator(std::string(APP_BASE_PATH).append("assets/bezels/"))) {
 			if (entry.is_regular_file() && (entry.path().extension() == ".png" || entry.path().extension() == ".jpg")) {
 				// omit xxx.glass.png or yyy.glass.jpg, the glass layer
 				if (entry.path().stem().extension() == ".glass")
 					continue;
-				
+
 				_bezelFiles.push_back(entry.path().filename().string());
 				if (_selectedBezelFile == entry.path().filename().string()) {
 					_selIdx = (int)_bezelFiles.size() - 1;
@@ -421,7 +422,7 @@ namespace sa2 {
 		}
 		return _selIdx;
 	}
-	
+
 	void PostProcessor::SelectShader()
 	{
 		// Choose the shader
@@ -483,7 +484,7 @@ namespace sa2 {
 		// common
 		shaderProgram.SetUniform("POSTPROCESSING_LEVEL", p_i_postprocessingLevel);
 	}
-	
+
 	void PostProcessor::RegenerateFBOs()
 	{
 		if (FBO == UINT_MAX)
@@ -500,7 +501,7 @@ namespace sa2 {
 		// Compute the pixel boundaries of the quad from its normalized coordinates.
 		// The conversion from normalized device coordinates (range [-1,1]) to pixel coordinates is:
 		//    pixel = (ndc * 0.5 + 0.5) * viewportDimension
-		
+
 		glm::vec4 quadCorners[4] = {
 			glm::vec4(-1.0f, -1.0f, 0.0f, 1.0f),
 			glm::vec4(1.0f, -1.0f, 0.0f, 1.0f),
@@ -514,12 +515,12 @@ namespace sa2 {
 			if (transformed[i].w != 0.0f)
 				transformed[i] /= transformed[i].w;
 		}
-		
+
 		float nquadLeft = std::min({ transformed[0].x, transformed[1].x, transformed[2].x, transformed[3].x });
 		float nquadRight = std::max({ transformed[0].x, transformed[1].x, transformed[2].x, transformed[3].x });
 		float nquadBottom = std::max({ transformed[0].y, transformed[1].y, transformed[2].y, transformed[3].y });
 		float nquadTop = std::min({ transformed[0].y, transformed[1].y, transformed[2].y, transformed[3].y });
-		
+
 		// rounding is critical, to properly align the previous frame texture
 		tA2Quad.x = std::round((nquadLeft * 0.5 + 0.5) * viewportWidth);
 		tA2Quad.y = std::round((nquadTop * 0.5 + 0.5) * viewportHeight);
@@ -552,12 +553,14 @@ namespace sa2 {
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,
 							GL_ONE,       GL_ONE_MINUS_SRC_ALPHA);
 
+		glFlush();
+
 		GLuint glerr;
 		if ((glerr = glGetError()) != GL_NO_ERROR) {
 			std::cerr << "OpenGL error PP RegeneratePreviousTexture: " << glerr << std::endl;
 		}
 	}
-	
+
 	void PostProcessor::Render(int outWidth, int outHeight, uint32_t inputTexId, uint32_t inputTexWidth, uint32_t inputTexHeight)
 	{
 		GLenum glerr;
@@ -579,6 +582,14 @@ namespace sa2 {
 
 		if ((outWidth <= 0) || (outHeight <= 0)) {
 			return;
+		}
+
+		if ((requestedWidth != outWidth) || (requestedHeight != outHeight)
+			|| (FBO == UINT_MAX) || (FBO_prevFrame == UINT_MAX))
+		{
+			requestedWidth = outWidth;
+			requestedHeight = outHeight;
+			bShouldRegenFBO = true;
 		}
 
 		viewportWidth = outWidth;
@@ -629,12 +640,12 @@ namespace sa2 {
 		float scaleY = (quadHeight / static_cast<float>(viewportHeight));
 		_transform = glm::scale(_transform, glm::vec3(scaleX*p_v_zoom.x, scaleY*p_v_zoom.y, 1.0f));
 		_transform = glm::translate(_transform, glm::vec3(p_v_center.x/100.f, p_v_center.y/100.f, 0.0f));
-		if ((_transform != mTransform)
-			|| (FBO == UINT_MAX) || (FBO_prevFrame == UINT_MAX))
+		if (_transform != mTransform)
 		{
 			mTransform = _transform;
-			RegenerateFBOs();
+			bShouldRegenFBO = true;
 		}
+
 		// Always re-bind the texture we're given and generate the mimaps
 		glActiveTexture(_TEXUNIT_PP_INPUT);
 		inTextureId = inputTexId;
@@ -681,7 +692,7 @@ namespace sa2 {
 				std::cerr << "OpenGL error PP shaderProgram use: " << glerr << std::endl;
 			}
 		}
-		
+
 		// Used for all PP shaders
 		shaderProgram.SetUniform("uTransform", mTransform);		// in the vertex shader
 		shaderProgram.SetUniform("iFrameCount", frame_count);
@@ -692,7 +703,7 @@ namespace sa2 {
 			shaderProgram.SetUniform("OutputSize", glm::vec2(quadWidth, quadHeight));
 			shaderProgram.SetUniform("ScanlineCount", inputTexHeight);
 		}
-		
+
 		// Bind the quad VAO and draw the quad (static VBO already set up)
 		glBindVertexArray(quadVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -700,9 +711,9 @@ namespace sa2 {
 		if ((glerr = glGetError()) != GL_NO_ERROR) {
 			std::cerr << "OpenGL error PP glDrawArrays: " << glerr << std::endl;
 		}
-		
+
 		/////////////////////////// BEGIN PREVIOUS FRAME TEXTURE ///////////////////////////
-		
+
 		// DO NOT COPY INTO THE PREVIOUS FRAME TEXTURE UNLESS IT IS REQUIRED
 		// THIS _DRAMATICALLY_ REDUCES THE FPS ON A RASPBERRY PI
 		if ((p_f_ghostingPercent > 0.0000001f && p_i_postprocessingLevel == 2) || bHalveFramerate)
@@ -720,9 +731,9 @@ namespace sa2 {
 				std::cerr << "OpenGL error PP glBlitFramebuffer: " << glerr << std::endl;
 			}
 		}
-		
+
 		//////////////////////////// END OF PREVIOUS FRAME TEXTURE ///////////////////////////
-		
+
 		// Now Build and Draw the Bezel if necessary
 		if (selectedBezelFile != _PP_NO_BEZEL_FILENAME)
 		{
@@ -766,7 +777,7 @@ namespace sa2 {
 				std::cerr << "OpenGL error PP Bezel glDrawArrays: " << glerr << std::endl;
 			}
 		}
-		
+
 		glBindVertexArray(0);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glViewport(last_viewport[0], last_viewport[1], (GLsizei)last_viewport[2], (GLsizei)last_viewport[3]);
@@ -775,23 +786,31 @@ namespace sa2 {
 			std::cerr << "OpenGL error PP End: " << glerr << std::endl;
 		}
 		++frame_count;
+
+		// Regenerate the FBO after the frame is generated
+		// to avoid flicker when the user adjusts the geometry in realtime
+		if (bShouldRegenFBO)
+		{
+			bShouldRegenFBO = false;
+			std::cerr << "REGEN FBO!" << std::endl;
+			RegenerateFBOs();
+		}
 	}
-	
-	
+
 	void PostProcessor::ResetToDefaults()
 	{
 		memset(preset_name_buffer, 0, sizeof(preset_name_buffer));
-		
+
 		max_integer_scale = 1;
 		integer_scale = 1;		// Base integer scale used
 		bAutoScale = true;		// Automatically scale to max scale?
 		bHalveFramerate = false;	// Mixes every pair of frames, to avoid page flip flicker
 		bCRTFillWindow = false;
-		
+
 		selectedBezelFile = _PP_NO_BEZEL_FILENAME;
 		currentBezelIndex = 0;
 		bezelSize = glm::vec2(1.0f, 1.0f);
-		
+
 		p_b_smoothCorner = false;
 		p_b_useOKlab = true;
 		p_b_slot = false;
@@ -830,7 +849,7 @@ namespace sa2 {
 		p_v_warp = glm::vec2(0.0f, 0.0f);
 		p_v_center = glm::vec2(0.0f, 0.0f);
 		p_v_zoom = glm::vec2(1.0f, 1.0f);
-		
+
 		// bezel shader variables
 		p_b_outlineQuad = false;
 		p_f_bezelReflection = 0.0f;
@@ -838,12 +857,12 @@ namespace sa2 {
 		p_v_reflectionScale = glm::vec2(1.0f, 1.0f);
 		p_v_reflectionTranslation = glm::vec2(0.0f, 0.0f);
 		p_f_glassThickness = 1.0f;
-		
+
 		// imgui vars
 		bImGuiLockWarp = false;
 		bImGuiLockZoom = false;
 	}
-	
+
 	void PostProcessor::RenderImGuiWindow()
 	{
 		if (bImguiWindowIsOpen)
@@ -860,7 +879,7 @@ namespace sa2 {
 			{
 				ResetToDefaults();
 			}
-			
+
 			// Handle presets
 			ImGui::Text("[ PRESETS ]");
 			IGFD::FileDialogConfig config;
@@ -886,7 +905,7 @@ namespace sa2 {
 				ImGui::SetNextWindowSize(ImVec2(800, 400));
 				instance_presets.OpenDialog("SaveStateDlg", "Choose Save Location", ".json", config);
 			}
-			
+
 			if (instance_presets.Display("LoadStateDlg")) {
 				if (instance_presets.IsOk()) {
 					std::string filePath = instance_presets.GetFilePathName();
@@ -894,7 +913,7 @@ namespace sa2 {
 				}
 				instance_presets.Close();
 			}
-			
+
 			if (instance_presets.Display("SaveStateDlg")) {
 				if (instance_presets.IsOk()) {
 					std::string filePath = instance_presets.GetFilePathName();
@@ -902,9 +921,9 @@ namespace sa2 {
 				}
 				instance_presets.Close();
 			}
-			
+
 			ImGui::PushItemWidth(200);
-			
+
 			// PP Type
 			ImGui::Separator();
 			ImGui::Text("[ POSTPROCESSING LEVEL ]");
@@ -921,9 +940,9 @@ namespace sa2 {
 			ImGui::SliderInt("Integer Scale", &integer_scale, 1, max_integer_scale, "%d");
 			if (bAutoScale)
 				ImGui::EndDisabled();
-			
+
 			ImGui::Separator();
-			
+
 			ImGui::Text("[ GEOMETRY & OVERLAY]");
 			// GEOMETRY
 			if (ImGui::Checkbox("Fill Window", &bCRTFillWindow))
@@ -932,7 +951,7 @@ namespace sa2 {
 				p_v_zoom.y = 1.0f;
 				p_v_center.x = 0;
 				p_v_center.y = 0;
-				
+
 			}
 			if (bImGuiLockZoom)
 			{
@@ -945,14 +964,14 @@ namespace sa2 {
 				ImGui::DragFloat2("Image Zoom", reinterpret_cast<float*>(&p_v_zoom), 0.001f, 0.001f, 5.0f, "%.3f");
 			ImGui::SameLine(); ImGui::Spacing();
 			ImGui::SameLine(); ImGui::Checkbox("Uniform##Zoom", &bImGuiLockZoom);
-			
+
 			ImGui::DragFloat2("Image Center", reinterpret_cast<float*>(&p_v_center), 0.1f, -100.0f, 100.0f, "%.2f");
-			
+
 			// OVERLAY
 			currentBezelIndex = 0;
 			std::vector<std::string> _bezelFiles;
 			currentBezelIndex = PopulateBezelFiles(_bezelFiles, selectedBezelFile);
-			
+
 			std::vector<const char*> bezelFileCStrs;
 			for (const auto& file : _bezelFiles) {
 				bezelFileCStrs.push_back(file.c_str());
@@ -980,15 +999,15 @@ a reflection for your bezel. It takes work but can provide a really valuable\n\
 FX that makes the whole screen 'pop'. Tweak the scale and center when at 0 blur\n\
 and strong reflection, then dial blur up and reflection down.");
 			ImGui::SliderFloat("Reflection Blur", &p_f_reflectionBlur, 0.0f, 10.f, "%.3f");
-			if (ImGui::DragFloat2("Reflection Scale", reinterpret_cast<float*>(&p_v_reflectionScale), 
+			if (ImGui::DragFloat2("Reflection Scale", reinterpret_cast<float*>(&p_v_reflectionScale),
 								  0.001f, 0.001f, 5.0f, "%.3f"))
 				p_b_outlineQuad = true;
 			if (ImGui::DragFloat2("Reflection Center", reinterpret_cast<float*>(&p_v_reflectionTranslation),
 								  0.001f, -4.f, 4.f, "%.3f"))
 				p_b_outlineQuad = true;
-			
+
 			ImGui::Separator();
-			
+
 			ImGui::Text("[ FRAME MERGING ]");
 			ImGui::Checkbox("Merge Frame Pairs", &bHalveFramerate);
 			HelpMarker("WARNING: SIGNIFICANT FPS IMPACT!\n\
@@ -1025,9 +1044,9 @@ when using the complex scanline type");
 					ImGui::SliderFloat("Interlacing", &p_f_interlace, 0.0f, 2.0f, "%.2f");
 					HelpMarker("If you really want to feel the pain of bad refresh rates");
 				}
-				
+
 				ImGui::Separator();
-				
+
 				// Blurring and Ghosting
 				ImGui::Text("[ BLUR & GHOSTING ]");
 				ImGui::SliderFloat("Phosphor Blur", &p_f_phosphorBlur, 0.0, 2.0, "%.2f");
@@ -1050,9 +1069,9 @@ Mix in a bit of ghosting to smooth animations. \n\
 Overdo it to emulate the Apple /// monitor!\n\
 Works best at low frame rates, below 60 FPS.\n\
 Needs more ghosting for fast frame rates.");
-				
+
 				ImGui::Separator();
-				
+
 				// Mask Settings
 				ImGui::Text("[ MASK SETTINGS ]");
 				ImGui::RadioButton("None##Mask", &p_i_maskType, 0); ImGui::SameLine();
@@ -1065,7 +1084,7 @@ Needs more ghosting for fast frame rates.");
 				ImGui::SliderFloat("Mask Brightness Dark", &p_f_maskLow, 0.0f, 1.0f, "%.2f");
 				ImGui::SliderFloat("Mask Brightness Bright", &p_f_maskHigh, 0.0f, 1.0f, "%.2f");
 				ImGui::Separator();
-				
+
 				// Geometry Settings
 				ImGui::Text("[ ADVANCED GEOMETRY ]");
 				if (bImGuiLockWarp)
@@ -1079,13 +1098,13 @@ Needs more ghosting for fast frame rates.");
 					ImGui::DragFloat2("Curvature", reinterpret_cast<float*>(&p_v_warp), 0.001f, -0.5f, 0.5f, "%.3f");
 				ImGui::SameLine(); ImGui::Spacing();
 				ImGui::SameLine(); ImGui::Checkbox("Uniform##Curvature", &bImGuiLockWarp);
-				
+
 				ImGui::SliderFloat("Barrel Distortion", &p_f_barrelDistortion, -0.30f, 5.00f, "%.2f");
 				ImGui::SliderFloat("Corners Cut", &p_f_corner, 0.f, 100.f, "%.3f");
 				ImGui::SameLine(); ImGui::Spacing();
 				ImGui::SameLine(); ImGui::Checkbox("Smooth", &p_b_smoothCorner);
 				ImGui::Separator();
-				
+
 				// Color Settings
 				ImGui::Text("[ COLOR SETTINGS ]");
 				ImGui::Checkbox("Use OKlab instead of linear RGB", &p_b_useOKlab);
@@ -1104,7 +1123,7 @@ Needs more ghosting for fast frame rates.");
 				ImGui::SliderFloat("Scan/Mask Brightness Dependence", &p_f_brDep, 0.0f, 0.5f, "%.3f");
 				ImGui::SliderInt("Color Space: sRGB,PAL,NTSC-U,NTSC-J", &p_i_cSpace, 0, 3, "%1d");
 				ImGui::Separator();
-				
+
 				// Convergence Settings
 				ImGui::Text("[ CONVERGENCE SETTINGS ]");
 				ImGui::SliderFloat("Convergence Overall Strength", &p_f_cStr, 0.0f, 0.5f, "%.2f");
@@ -1113,14 +1132,14 @@ Needs more ghosting for fast frame rates.");
 				ImGui::SliderFloat("Convergence Green X-axis", &p_f_convG, -3.0f, 3.0f, "%.2f");
 				ImGui::SliderFloat("Convergence Blue X-Axis", &p_f_convB, -3.0f, 3.0f, "%.2f");
 			}
-			
+
 			ImGui::PopItemWidth();
 			ImGui::End();
 		}
 	}
-	
-	void PostProcessor::SetActive(bool isActive) { 
+
+	void PostProcessor::SetActive(bool isActive) {
 		bIsActive = isActive;
 	}
-	
+
 } // namespace sa2
