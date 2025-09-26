@@ -792,7 +792,6 @@ namespace sa2 {
 		if (bShouldRegenFBO)
 		{
 			bShouldRegenFBO = false;
-			std::cerr << "REGEN FBO!" << std::endl;
 			RegenerateFBOs();
 		}
 	}
