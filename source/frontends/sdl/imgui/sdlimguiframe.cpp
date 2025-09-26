@@ -370,10 +370,13 @@ namespace sa2
 			{
 				case SDLK_F6:
 				{
-					// In case the user pressed CTRL-F6, we need to add the imgui menu height
-					int ww, wh;
-					SDL_GetWindowSize(myWindow.get(), &ww, &wh);
-					SDL_SetWindowSize(myWindow.get(), ww, wh + myDeadTopZone);
+					if (modifiers == KMOD_CTRL)
+					{
+						// In case the user pressed CTRL-F6, we need to add the imgui menu height
+						int ww, wh;
+						SDL_GetWindowSize(myWindow.get(), &ww, &wh);
+						SDL_SetWindowSize(myWindow.get(), ww, wh + myDeadTopZone);
+					}
 				}
 			}
 		}
