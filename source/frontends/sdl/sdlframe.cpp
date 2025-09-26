@@ -447,7 +447,11 @@ namespace sa2
                 else if (modifiers == KMOD_NONE)
                 {
                     myFullscreen = !myFullscreen;
-                    SDL_SetWindowFullscreen(myWindow.get(), myFullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+#if defined(__APPLE__)
+					SDL_SetWindowFullscreen(myWindow.get(), myFullscreen ? SDL_WINDOW_FULLSCREEN : 0);
+#else
+					SDL_SetWindowFullscreen(myWindow.get(), myFullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+#endif
                 }
                 break;
             }
