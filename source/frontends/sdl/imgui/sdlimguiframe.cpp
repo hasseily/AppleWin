@@ -313,6 +313,8 @@ namespace sa2
         // a bit of care is required
         // since we do not want to trigger twice (here and SDLFrame)
         // we need to ensure the modifiers are consistent
+		// We can process keys before and after SDLFrame
+
         if (!key.repeat)
         {
             const size_t modifiers = getCanonicalModifiers(key);
@@ -359,6 +361,22 @@ namespace sa2
         }
 
         SDLFrame::ProcessKeyDown(key, quit);
+
+		if (!key.repeat)
+		{
+			const size_t modifiers = getCanonicalModifiers(key);
+
+			switch (key.keysym.sym)
+			{
+				case SDLK_F6:
+				{
+					// In case the user pressed CTRL-F6, we need to add the imgui menu height
+					int ww, wh;
+					SDL_GetWindowSize(myWindow.get(), &ww, &wh);
+					SDL_SetWindowSize(myWindow.get(), ww, wh + myDeadTopZone);
+				}
+			}
+		}
     }
 
     bool SDLImGuiFrame::Quit() const
