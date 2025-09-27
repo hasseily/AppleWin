@@ -1010,9 +1010,9 @@ namespace sa2
 			}
 
 			// =========================
-			// Disks & Drives (Disk II & HDD)
+			// Media (Disk II & HDD)
 			// =========================
-			if (ImGui::BeginMenu("Disks & Drives"))
+			if (ImGui::BeginMenu("Media"))
 			{
 				// Only scan disk-capable slots
 				for (int slot = SLOT5; slot < NUM_SLOTS; ++slot)
@@ -1305,6 +1305,12 @@ namespace sa2
 			}
 
 			myDiskFileDialog.Display();
+			if (myDiskFileDialog.HasSelected())
+			{
+				sa2::processFile(
+								 frame, myDiskFileDialog.GetSelected().string().c_str(), myOpenSlot, myOpenDrive);
+				myDiskFileDialog.ClearSelected();
+			}
         }
         else
         {
