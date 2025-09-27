@@ -398,4 +398,9 @@ namespace sa2
         myShowMouseCursor = !myShowMouseCursor;
 	}
 
+	bool SDLImGuiFrame::IsMouseCursorVisible()
+	{
+		return myShowMouseCursor;
+	}
+
 } // namespace sa2

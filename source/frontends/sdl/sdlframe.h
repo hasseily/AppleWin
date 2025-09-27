@@ -44,6 +44,9 @@ namespace sa2
         void SaveSnapshot();
 
         static void setGLSwapInterval(const int interval);
+		
+		virtual void ToggleMouseCursor() = 0;
+		virtual bool IsMouseCursorVisible() = 0;
 
     protected:
         void SetApplicationIcon();
@@ -52,7 +55,6 @@ namespace sa2
         virtual void ProcessSingleEvent(const SDL_Event &event, bool &quit);
         virtual void GetRelativeMousePosition(const SDL_MouseMotionEvent &motion, float &x, float &y) const = 0;
         virtual void ProcessKeyDown(const SDL_KeyboardEvent &key, bool &quit);
-        virtual void ToggleMouseCursor() = 0;
 
         void ProcessKeyUp(const SDL_KeyboardEvent &key);
         void ProcessText(const SDL_TextInputEvent &text);

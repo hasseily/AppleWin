@@ -20,11 +20,13 @@ namespace sa2
 
         bool Quit() const override;
 
+		void ToggleMouseCursor() override;
+		bool IsMouseCursorVisible() override;
+		
     protected:
         void ProcessSingleEvent(const SDL_Event &event, bool &quit) override;
         void ProcessKeyDown(const SDL_KeyboardEvent &key, bool &quit) override;
         void GetRelativeMousePosition(const SDL_MouseMotionEvent &motion, float &x, float &y) const override;
-        void ToggleMouseCursor() override;
 
     private:
         void UpdateTexture();

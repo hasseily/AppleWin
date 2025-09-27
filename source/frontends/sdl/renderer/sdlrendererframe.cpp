@@ -94,4 +94,9 @@ namespace sa2
         SDL_ShowCursor(current ^ 1);
     }
 
+	bool SDLRendererFrame::IsMouseCursorVisible()
+	{
+		const int current = SDL_ShowCursor(SDL_QUERY);
+		return (current == SDL_ENABLE);
+	}
 } // namespace sa2

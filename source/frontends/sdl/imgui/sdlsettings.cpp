@@ -693,10 +693,9 @@ namespace sa2
 					{
 						pp->SetActive(isPP);
 					}
-					if (isPP)
+					ImGui::SameLine();
+					if (ImGui::Button("PP Settings"))
 					{
-						ImGui::SameLine();
-						if (ImGui::Button("PP Settings"))
 						pp->bImguiWindowIsOpen = true;
 					}
 
@@ -924,30 +923,388 @@ namespace sa2
 
         if (enabled && ImGui::BeginMainMenuBar())
         {
+			// --- Modals toggles ---
+			static bool openMouseCursorModal = false;
+
+			Video& video = GetVideo();
+			const int volumeMax = GetPropertySheet().GetVolumeMax();
+			CardManager &cardManager = GetCardMgr();
+			MockingboardCardManager& mockingboard = cardManager.GetMockingboardCardMgr();
+			auto* pp = PostProcessor::GetInstance();
+
+
             menuBarHeight = ImGui::GetWindowHeight();
             if (ImGui::BeginMenu("System"))
             {
                 ImGui::MenuItem("Settings", "F8", &myShowSettings);
                 ImGui::MenuItem("Memory viewer", nullptr, &myMemoryViewer.show);
                 ImGui::MenuItem("Memory editor", nullptr, &myShowMemoryEditor);
+				ImGui::MenuItem("Apple Video windowed", nullptr, &windowed);
                 if (ImGui::MenuItem("Debugger", "F7", &myDebugger.showDebugger))
                 {
                     myDebugger.syncDebuggerState(frame);
                 }
+				ImGui::Separator();
+
+				// Snapshots submenu
+				if (ImGui::BeginMenu("Snapshots"))
+				{
+					// Current snapshot file (display only)
+					const std::string& snapshotPathname = Snapshot_GetPathname();
+					ImGui::TextUnformatted("Current file:");
+					ImGui::PushTextWrapPos(ImGui::GetFontSize() * 40.0f);
+					ImGui::TextDisabled("%s", snapshotPathname.c_str());
+					ImGui::PopTextWrapPos();
+
+					// Choose snapshot file (opens your file dialog)
+					if (ImGui::MenuItem("Choose snapshot file..."))
+					{
+						openFileDialog(mySaveFileDialog, snapshotPathname);
+					}
+
+					// Save / Load with accelerators like your original buttons
+					if (ImGui::MenuItem("Save", "F11"))
+					{
+						frame->SaveSnapshot();
+					}
+					if (ImGui::MenuItem("Load", "F12"))
+					{
+						frame->LoadSnapshot();
+					}
+
+					ImGui::EndMenu();
+				}
+				ImGui::Separator();
+
+				// System actions
+				if (ImGui::MenuItem("Restart"))
+				{
+					frame->Restart();
+				}
+				if (ImGui::MenuItem("Reset Machine State", "F2"))
+				{
+					frame->FrameResetMachineState();
+				}
+				if (ImGui::MenuItem("Ctrl-Reset", "Ctrl-F2"))
+				{
+					CtrlReset();
+				}
                 ImGui::Separator();
                 ImGui::MenuItem("Quit", "Alt-F4", &quit);
                 ImGui::EndMenu();
             }
 
-            if (ImGui::BeginMenu("Help"))
-            {
-                ImGui::MenuItem("Shortcuts", "F1", &myShowShortcuts);
-                ImGui::MenuItem("ImGui Demo", nullptr, &myShowDemo);
-                ImGui::Separator();
-                ImGui::MenuItem("About", nullptr, &myShowAbout);
-                ImGui::EndMenu();
-            }
+			// =========================
+			// Speed
+			// =========================
+			if (ImGui::BeginMenu("Speed"))
+			{
+				// Presets
+				if (ImGui::MenuItem("0.5 MHz", nullptr, g_dwSpeed == SPEED_MIN)) { setSpeedMultiplier(frame, SPEED_MIN); }
+				if (ImGui::MenuItem("1 MHz", nullptr, g_dwSpeed == SPEED_NORMAL)) { setSpeedMultiplier(frame, SPEED_NORMAL); }
+				if (ImGui::MenuItem("2 MHz", nullptr, g_dwSpeed == SPEED_NORMAL * 2)) { setSpeedMultiplier(frame, SPEED_NORMAL * 2); }
+				if (ImGui::MenuItem("3 MHz", nullptr, g_dwSpeed == SPEED_NORMAL * 3)) { setSpeedMultiplier(frame, SPEED_NORMAL * 3); }
+				if (ImGui::MenuItem("MAX", nullptr, g_dwSpeed == SPEED_MAX)) { setSpeedMultiplier(frame, SPEED_MAX); }
+
+				ImGui::EndMenu();
+			}
+
+			// =========================
+			// Disks & Drives (Disk II & HDD)
+			// =========================
+			if (ImGui::BeginMenu("Disks & Drives"))
+			{
+				// Only scan disk-capable slots
+				for (int slot = SLOT5; slot < NUM_SLOTS; ++slot)
+				{
+					auto ctype = cardManager.QuerySlot(slot);
+					if (ctype == CT_Disk2)
+					{
+						Disk2InterfaceCard* card2 = dynamic_cast<Disk2InterfaceCard*>(cardManager.GetObj(slot));
+						if (!card2) continue;
+
+						const int currentDrive = card2->GetCurrentDrive();
+						Disk_Status_e statuses[NUM_DRIVES] = {};
+						card2->GetLightStatus(statuses + 0, statuses + 1);
+						const UINT firmware = card2->GetCurrentFirmware();
+
+						char slotLabel[64];
+						snprintf(slotLabel, sizeof(slotLabel), "Slot %d - Disk II", slot);
+
+						if (ImGui::BeginMenu(slotLabel))
+						{
+							// Per-drive submenus
+							for (uint32_t drive = DRIVE_1; drive < NUM_DRIVES; ++drive)
+							{
+								char driveLabel[64];
+								snprintf(driveLabel, sizeof(driveLabel), "Drive %u", drive + 1);
+
+								if (ImGui::BeginMenu(driveLabel))
+								{
+									// Status block
+									ImGui::TextDisabled("Firmware: %u", firmware);
+									ImGui::TextDisabled("Track:    %d", card2->GetTrack(drive));
+									if ((int)drive == currentDrive)
+									{
+										ImGui::TextDisabled("Cur. Track: %s", card2->GetCurrentTrackString().c_str());
+										ImGui::TextDisabled("Cur. Phase: %s", card2->GetCurrentPhaseString().c_str());
+									}
+									ImGui::TextDisabled("Status:  %s", getDiskStatusName(statuses[drive]).c_str());
+									ImGui::Separator();
+
+									if (ImGui::MenuItem("Eject"))
+									{
+										card2->EjectDisk(drive);
+									}
+									if (ImGui::MenuItem("Swap 1<->2"))
+									{
+										card2->DriveSwap();
+									}
+									if (ImGui::MenuItem("Open image..."))
+									{
+										const std::string& diskName = card2->DiskGetFullPathName(drive);
+										openDiskFileDialog(myDiskFileDialog, diskName, slot, drive);
+									}
+
+									// Filename (display only)
+									ImGui::Separator();
+									ImGui::TextUnformatted("Image:");
+									ImGui::PushTextWrapPos(ImGui::GetFontSize() * 40.0f);
+									ImGui::TextDisabled("%s", card2->GetFullDiskFilename(drive).c_str());
+									ImGui::PopTextWrapPos();
+
+									ImGui::EndMenu();
+								}
+							}
+
+							ImGui::EndMenu();
+						}
+					}
+					else if (ctype == CT_GenericHDD)
+					{
+						HarddiskInterfaceCard* hd = dynamic_cast<HarddiskInterfaceCard*>(cardManager.GetObj(slot));
+						if (!hd) continue;
+
+						Disk_Status_e status;
+						hd->GetLightStatus(&status);
+
+						char slotLabel[64];
+						snprintf(slotLabel, sizeof(slotLabel), "Slot %d - Hard Disk", slot);
+
+						if (ImGui::BeginMenu(slotLabel))
+						{
+							for (uint32_t drive = HARDDISK_1; drive < NUM_HARDDISKS; ++drive)
+							{
+								char driveLabel[64];
+								snprintf(driveLabel, sizeof(driveLabel), "Drive %u", drive + 1);
+
+								if (ImGui::BeginMenu(driveLabel))
+								{
+									ImGui::TextDisabled("Type:    HD");
+									ImGui::TextDisabled("Status:  %s", getDiskStatusName(status).c_str());
+									ImGui::Separator();
+
+									if (ImGui::MenuItem("Eject"))
+									{
+										hd->Unplug(drive);
+									}
+									if (drive <= HARDDISK_2)
+									{
+										if (ImGui::MenuItem("Swap 1<->2"))
+										{
+											hd->ImageSwap();
+										}
+									}
+									if (ImGui::MenuItem("Open image..."))
+									{
+										const std::string& diskName = hd->HarddiskGetFullPathName(drive);
+										openDiskFileDialog(myDiskFileDialog, diskName, slot, drive);
+									}
+
+									ImGui::Separator();
+									ImGui::TextUnformatted("Image:");
+									ImGui::PushTextWrapPos(ImGui::GetFontSize() * 40.0f);
+									ImGui::TextDisabled("%s", hd->GetFullName(drive).c_str());
+									ImGui::PopTextWrapPos();
+
+									ImGui::EndMenu();
+								}
+							}
+
+							ImGui::EndMenu();
+						}
+					}
+				}
+
+				ImGui::EndMenu();
+			}
+
+			// =========================
+			// Audio
+			// =========================
+			if (ImGui::BeginMenu("Audio"))
+			{
+				ImGui::TextUnformatted("Speaker volume");
+				// mirror "inverted" semantics from original (UI shows 0..max, engine uses max-current)
+				int speakerVolSlider = volumeMax - SpkrGetVolume();
+				if (ImGui::SliderInt("##spk", &speakerVolSlider, 0, volumeMax))
+				{
+					SpkrSetVolume(volumeMax - speakerVolSlider, volumeMax);
+					REGSAVE(REGVALUE_SPKR_VOLUME, SpkrGetVolume());
+				}
+				ImGui::Separator();
+
+				ImGui::TextUnformatted("Mockingboard volume");
+				int mockingVolSlider = volumeMax - mockingboard.GetVolume();
+				if (ImGui::SliderInt("##mb", &mockingVolSlider, 0, volumeMax))
+				{
+					mockingboard.SetVolume(volumeMax - mockingVolSlider, volumeMax);
+					REGSAVE(REGVALUE_MB_VOLUME, mockingboard.GetVolume());
+				}
+
+				ImGui::EndMenu();
+			}
+
+			// =========================
+			// Video
+			// =========================
+			if (ImGui::BeginMenu("Video"))
+			{
+				if (ImGui::BeginMenu("Video mode", "F9"))
+				{
+					const auto current = video.GetVideoType();
+					for (const auto& [type, label] : getVideoTypes())
+					{
+						std::string_view text(label);
+						const bool selected = (type == current);
+						if (ImGui::MenuItem(text.data(), nullptr, selected))
+						{
+							if (type != current)
+							{
+								video.SetVideoType(type);
+								frame->ApplyVideoModeChange();
+							}
+						}
+					}
+					ImGui::EndMenu();
+				}
+
+				// Monochrome color picker as modal
+				if (ImGui::BeginMenu("Monochrome custom color"))
+				{
+					ImVec4 color = colorrefToImVec4(video.GetMonochromeRGB());
+					if (ImGui::ColorEdit3("Color", (float*)&color, 0))
+					{
+						const COLORREF cr = imVec4ToColorref(color);
+						video.SetMonochromeRGB(cr);
+						frame->ApplyVideoModeChange();
+					}
+					ImGui::EndMenu();
+				}
+				ImGui::Separator();
+
+				bool mouseIsHidden = !frame->IsMouseCursorVisible();
+				if (ImGui::MenuItem("Hide Mouse Cursor", "Ctrl-F9", &mouseIsHidden))
+				{
+					if (!mouseIsHidden)				// bool got swapped by the selection
+						frame->ToggleMouseCursor();
+					else
+						openMouseCursorModal = true;
+				}
+
+				ImGui::MenuItem("Preserve aspect ratio", nullptr, &frame->getPreserveAspectRatio());
+
+				bool scanLines = video.IsVideoStyle(VS_HALF_SCANLINES);
+				if (ImGui::MenuItem("50% Scan lines", "Shift-F6", scanLines))
+				{
+					scanLines = !scanLines;
+					setVideoStyle(video, VS_HALF_SCANLINES, scanLines);
+					frame->ApplyVideoModeChange();
+				}
+
+				bool verticalBlend = video.IsVideoStyle(VS_COLOR_VERTICAL_BLEND);
+				if (ImGui::MenuItem("Vertical blend", nullptr, verticalBlend))
+				{
+					verticalBlend = !verticalBlend;
+					setVideoStyle(video, VS_COLOR_VERTICAL_BLEND, verticalBlend);
+					frame->ApplyVideoModeChange();
+				}
+
+				bool hertz50 = (video.GetVideoRefreshRate() == VR_50HZ);
+				if (ImGui::MenuItem("50 Hz video", nullptr, hertz50))
+				{
+					hertz50 = !hertz50;
+					video.SetVideoRefreshRate(hertz50 ? VR_50HZ : VR_60HZ);
+					frame->ApplyVideoModeChange();
+				}
+
+				ImGui::Separator();
+
+				bool isPP = pp->IsActive();
+				if (ImGui::MenuItem("Post Processing CRT Shader", nullptr, isPP))
+				{
+					pp->SetActive(!isPP);
+				}
+				if (ImGui::MenuItem("Open PP Settings", "Shift-F8"))
+				{
+					pp->bImguiWindowIsOpen = true;
+				}
+
+				ImGui::EndMenu();
+			}
+
+			// =========================
+			// Help
+			// =========================
+			if (ImGui::BeginMenu("Help"))
+			{
+				ImGui::MenuItem("Shortcuts", "F1", &myShowShortcuts);
+				ImGui::MenuItem("ImGui Demo", nullptr, &myShowDemo);
+				ImGui::Separator();
+				ImGui::MenuItem("About", nullptr, &myShowAbout);
+				ImGui::EndMenu();
+			}
+
             ImGui::EndMainMenuBar();
+
+			// =========================
+			// Popups / Modals & File Dialogs
+			// =========================
+
+			// Mouse cursor modal
+			if (openMouseCursorModal)
+				ImGui::OpenPopup("Hide Mouse Cursor");
+			if (ImGui::BeginPopupModal("Hide Mouse Cursor", &openMouseCursorModal, ImGuiWindowFlags_AlwaysAutoResize))
+			{
+				ImGui::TextUnformatted("Are you sure you want to hide the mouse cursor?");
+				ImGui::TextUnformatted("Press Ctrl-F9 to make it visible again.");
+
+				ImGui::Separator();
+				if (ImGui::Button("Cancel"))
+				{
+					ImGui::CloseCurrentPopup();
+					openMouseCursorModal = false;
+				}
+				ImGui::SameLine();ImGui::Spacing();ImGui::SameLine();
+				if (ImGui::Button("Hide Cursor"))
+				{
+					ImGui::CloseCurrentPopup();
+					openMouseCursorModal = false;
+					frame->ToggleMouseCursor();
+				}
+				ImGui::EndPopup();
+			}
+
+			// File dialogs (snapshot & disk images)
+			mySaveFileDialog.Display();
+			if (mySaveFileDialog.HasSelected())
+			{
+				Snapshot_SetFilename(mySaveFileDialog.GetSelected().string());
+				RegSaveString(REG_CONFIG, REGVALUE_SAVESTATE_FILENAME, 1, Snapshot_GetPathname());
+				mySaveFileDialog.ClearSelected();
+			}
+
+			myDiskFileDialog.Display();
         }
         else
         {
