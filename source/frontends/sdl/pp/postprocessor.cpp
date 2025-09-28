@@ -22,23 +22,42 @@
 #define _TEXUNIT_PP_BEZEL GL_TEXTURE7			// The bezel in postprocessing
 #define _TEXUNIT_PP_BEZEL_GLASS GL_TEXTURE8		// The bezel glass in postprocessing
 
+/* @brief
+ The PostProcessor will take any texture that's in slot _PP_INPUT_TEXTURE_UNIT and apply the
+ postprocessing shader on it. It always dynamically calculates the texture's size and properly
+ scales it up in integer steps (or down in fractional steps).
+
+ The PostProcessor shader has 3 modes of operation:
+ - Geometry transformations and bezels
+ - Add a simple scanline mode that makes every other scanline black (unused for AppleWin that has its own)
+ - A full shader mode with a kitchensink of features
+
+ To make it more optimal for low end devices that may not approve of the full shader,
+ the transformation mode uses a basic transformation shader instead of the full one,
+ although the full shader can handle transformations as well.
+
+ Bezels:
+ =======
+
+ Bezels have their own shader applied in a subsequent pass.
+ Bezels have a specific format: Each bezel file should be a PNG with transparency. The bezel will
+ be applied as a layer on top of the Apple 2 video, so the transparency needs to be available to view the
+ Apple 2 video.
+
+ Any transparency > 0 but < 1 (partial transparency) will be considered to be an area used for reflections.
+ Reflections are created by displaying in partially transparent areas the out-of-ranged mirrored texture data
+ of the Apple 2 video texture. When the user properly scales it and blurs it, the reflection is good and cheap.
+
+ The lower the alpha value, the less translation the shader will make, and the closer to the bezel the light
+ will be "reflected".
+
+ Additionally, if the bezel file has a similarly named file that ends in .glass, the bezel shader will overlay
+ the .glass texture as a final pass.
+ */
+
 namespace sa2 {
 	// below because "The declaration of a static data member in its class definition is not a definition"
 	PostProcessor* PostProcessor::s_instance;
-
-	// The PostProcessor will take any texture that's in slot _PP_INPUT_TEXTURE_UNIT and apply the
-	// postprocessing shader on it.
-	// It always dynamically calculates the texture's size and properly scales it up in integer steps
-	// (or down in fractional steps).
-
-	// The PostProcessor shader has 3 modes of operation:
-	// - A passthrough mode
-	// - A simple scanline mode that makes every other scanline black
-	// - A full shader mode with a kitchensink of features
-
-	// To make it more optimal for low end devices that may not approve of the full shader,
-	// the passthrough mode uses a basic passthrough shader instead of the full one,
-	// although the full shader can handle passthrough as well.
 
 	//////////////////////////////////////////////////////////////////////////
 	// Basic singleton methods
@@ -202,14 +221,11 @@ namespace sa2 {
 		if ((glerr = glGetError()) != GL_NO_ERROR) {
 			std::cerr << "OpenGL LoadTexture glTexImage2D error: " << glerr << std::endl;
 		}
-		// NOTE: May need to generate mipmaps in case we want to allow zooming in-out
-		// But then we need to change the GL_TEXTURE_MIN_FILTER to GL_XXX_MIPMAP_XXX
-		//glGenerateMipmap(GL_TEXTURE_2D);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);	// Note: Could also use GL_LINEAR, need to test
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		if ((glerr = glGetError()) != GL_NO_ERROR) {
 			std::cerr << "OpenGL LoadTexture glTexParameteri error: " << glerr << std::endl;
 		}
