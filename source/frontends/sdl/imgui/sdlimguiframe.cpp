@@ -330,7 +330,7 @@ namespace sa2
 				{
 					auto pp = PostProcessor::GetInstance();
 					pp->bImguiWindowIsOpen = !pp->bImguiWindowIsOpen;
-				}
+                }
                 break;
             }
             case SDLK_F7:
@@ -396,6 +396,7 @@ namespace sa2
     void SDLImGuiFrame::ToggleMouseCursor()
     {
         myShowMouseCursor = !myShowMouseCursor;
+		SDL_SetRelativeMouseMode(myShowMouseCursor == SDL_TRUE ? SDL_FALSE : SDL_TRUE);
 	}
 
 	bool SDLImGuiFrame::IsMouseCursorVisible()

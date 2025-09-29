@@ -91,7 +91,7 @@ namespace sa2
     void SDLRendererFrame::ToggleMouseCursor()
     {
         const int current = SDL_ShowCursor(SDL_QUERY);
-        SDL_ShowCursor(current ^ 1);
+		SDL_SetRelativeMouseMode(current == SDL_ENABLE ? SDL_TRUE : SDL_FALSE);
     }
 
 	bool SDLRendererFrame::IsMouseCursorVisible()
