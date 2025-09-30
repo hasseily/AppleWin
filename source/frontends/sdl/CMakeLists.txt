@@ -5,6 +5,11 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET "14.6" CACHE STRING "Minimum OS X deployment ver
 
 add_executable(sa2 MACOSX_BUNDLE)
 
+set(APP_ICON "${CMAKE_CURRENT_SOURCE_DIR}/AppIcon.icns")
+set_source_files_properties(${APP_ICON}
+	PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+target_sources(sa2 PRIVATE ${APP_ICON})
+
 set(IMGUI_PATH "imgui/imgui")
 set(IMGUI_CLUB_PATH "imgui/imgui_club")
 
