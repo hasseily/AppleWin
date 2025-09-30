@@ -239,6 +239,8 @@ namespace sa2 {
 			{"bezelName", selectedBezelFile},
 			{"bezelWidth", bezelSize.x},
 			{"bezelHeight", bezelSize.y},
+			{"bezelCenterX", bezelCenter.x},
+			{"bezelCenterY", bezelCenter.y},
 			{"p_f_bezelReflection", p_f_bezelReflection},
 			{"p_f_reflectionBlur", p_f_reflectionBlur},
 			{"p_i_postprocessingLevel", p_i_postprocessingLevel},
@@ -308,6 +310,8 @@ namespace sa2 {
 		bIsActive = jsonState.value("bIsActive", bIsActive);
 		bezelSize.x = jsonState.value("bezelWidth", bezelSize.x);
 		bezelSize.y = jsonState.value("bezelHeight", bezelSize.y);
+		bezelCenter.x = jsonState.value("bezelCenterX", bezelCenter.x);
+		bezelCenter.y = jsonState.value("bezelCenterY", bezelCenter.y);
 		p_f_bezelReflection = jsonState.value("p_f_bezelReflection", p_f_bezelReflection);
 		p_f_reflectionBlur = jsonState.value("p_f_reflectionBlur", p_f_reflectionBlur);
 		p_i_postprocessingLevel = jsonState.value("p_i_postprocessingLevel", p_i_postprocessingLevel);
@@ -758,6 +762,7 @@ namespace sa2 {
 			shaderProgramBezel.Use();
 			glm::mat4 transformBezel = glm::mat4(1.0f);
 			transformBezel = glm::scale(transformBezel, glm::vec3(bezelSize.x, bezelSize.y, 1.0f));
+			transformBezel = glm::translate(transformBezel, glm::vec3(bezelCenter.x / 100.f, bezelCenter.y / 100.f, 0.0f));
 			shaderProgramBezel.SetUniform("uTransform", transformBezel);		// in the vertex shader
 			shaderProgramBezel.SetUniform("uMainTex", _TEXUNIT_PP_BEZEL - GL_TEXTURE0);
 			shaderProgramBezel.SetUniform("uA2Tex", _TEXUNIT_PP_INPUT - GL_TEXTURE0);
@@ -827,6 +832,7 @@ namespace sa2 {
 		selectedBezelFile = _PP_NO_BEZEL_FILENAME;
 		currentBezelIndex = 0;
 		bezelSize = glm::vec2(1.0f, 1.0f);
+		bezelCenter = glm::vec2(0.f, 0.f);
 
 		p_b_smoothCorner = false;
 		p_b_useOKlab = true;
@@ -999,8 +1005,8 @@ namespace sa2 {
 				if (currentBezelIndex > 0)
 					LoadSelectedBezel();
 			}
-			ImGui::SliderFloat("Overlay Relative Width", &bezelSize.x, 0.f, 2.f, "%.2f");
-			ImGui::SliderFloat("Overlay Relative Height", &bezelSize.y, 0.f, 2.f, "%.2f");
+			ImGui::DragFloat2("Overlay Zoom", reinterpret_cast<float*>(&bezelSize), 0.001f, 0.f, 300.f, "%.2f");
+			ImGui::DragFloat2("Overlay Center", reinterpret_cast<float*>(&bezelCenter), 1.f, -300.f, 300.f, "%.2f");
 			if (bezelGlassImageAsset.image_xcount > 0) {
 				ImGui::SliderFloat("Glass Thickness", &p_f_glassThickness, 0.f, 2.f, "%.2f");
 			}
