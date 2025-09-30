@@ -234,6 +234,7 @@ namespace sa2 {
 	nlohmann::json PostProcessor::SerializeState()
 	{
 		nlohmann::json jsonState = {
+			{"bIsActive", bIsActive},
 			{"preset_name", preset_name_buffer},
 			{"bezelName", selectedBezelFile},
 			{"bezelWidth", bezelSize.x},
@@ -304,6 +305,7 @@ namespace sa2 {
 			if (bezelImageAsset.image_xcount == 0)
 				selectedBezelFile = _PP_NO_BEZEL_FILENAME;
 		}
+		bIsActive = jsonState.value("bIsActive", bIsActive);
 		bezelSize.x = jsonState.value("bezelWidth", bezelSize.x);
 		bezelSize.y = jsonState.value("bezelHeight", bezelSize.y);
 		p_f_bezelReflection = jsonState.value("p_f_bezelReflection", p_f_bezelReflection);

@@ -38,8 +38,8 @@ namespace sa2 {
 		void Render(int outWidth, int outHeight, uint32_t inputTexId, uint32_t inputTexWidth, uint32_t inputTexHeight);
 		void RenderImGuiWindow();
 
-		nlohmann::json SerializeState();
-		void DeserializeState(const nlohmann::json &jsonState);
+		void SaveState(std::string filePath);
+		void LoadState(std::string filePath);
 
 		void LoadTexture(unsigned char* data, int width, int height, int nrComponents, uint32_t textureID);
 
@@ -58,13 +58,14 @@ namespace sa2 {
 
 	private:
 		void Initialize();
-		void SaveState(std::string filePath);
-		void LoadState(std::string filePath);
 		int PopulateBezelFiles(std::vector<std::string>& bezelFiles, const std::string& selectedBezelFile);
 		void SelectShader();
 		void RegenerateFBOs();
 		void ResetToDefaults();
-		
+
+		nlohmann::json SerializeState();
+		void DeserializeState(const nlohmann::json& jsonState);
+
 		void LoadSelectedBezel();
 		
 		// Singleton pattern

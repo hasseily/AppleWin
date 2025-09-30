@@ -132,10 +132,13 @@ namespace sa2
 
         myDeadTopZone = 0;
         myTexture = 0;
+
+		PostProcessor::GetInstance()->LoadState(common2::getHomeDir().string().append("/postprocessor.json"));
     }
 
     SDLImGuiFrame::~SDLImGuiFrame()
     {
+        PostProcessor::GetInstance()->SaveState(common2::getHomeDir().string().append("/postprocessor.json"));
         glDeleteTextures(1, &myTexture);
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplSDL2_Shutdown();
