@@ -3765,7 +3765,7 @@ void IGFD::FileDialog::m_DisplayPathPopup(ImVec2 vSize) {
 
 						if (ImGui::TableNextColumn())  // file name
 						{
-							if (ImGui::Selectable(infos->fileNameExt.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_SpanAvailWidth)) {
+							if (ImGui::Selectable(infos->fileNameExt.c_str(), &selected, (int)ImGuiSelectableFlags_SpanAllColumns | (int)ImGuiSelectableFlags_SpanAvailWidth)) {
 								fdi.SetCurrentPath(fdi.ComposeNewPath(fdi.GetCurrentPopupComposedPath()));
 								fdi.puPathClicked = fdi.SelectDirectory(infos);
 								ImGui::CloseCurrentPopup();

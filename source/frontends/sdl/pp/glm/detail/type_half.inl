@@ -5,8 +5,10 @@ namespace detail
 	{
 		volatile float f = 1e10;
 
-		for(int i = 0; i < 10; ++i)
-			f *= f; // this will overflow before the for loop terminates
+		for (int i = 0; i < 10; ++i) {
+			float tmp = f;
+			f = tmp * tmp; // this will overflow before the for loop terminates
+		}
 		return f;
 	}
 
