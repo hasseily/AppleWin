@@ -19,17 +19,15 @@ set(IMGUI_PATH "imgui/imgui")
 set(IMGUI_CLUB_PATH "imgui/imgui_club")
 
 find_package(SDL2 REQUIRED)
+find_package(SDL2_IMAGE REQUIRED)
 
 target_compile_features(common2 PUBLIC cxx_std_20)
 
 if ((${CMAKE_SYSTEM_NAME} MATCHES "Darwin") OR (${CMAKE_SYSTEM_NAME} MATCHES "Windows"))
   # only OpenGL supported on MacOS and Windows
   set (SA2_OPENGL ON)
-  find_package(SDL2_IMAGE REQUIRED)
 else()
   option(SA2_OPENGL "Prefer OpenGL over OpenGL ES" OFF)
-  # we should use find_package, but Ubuntu does not provide it for SDL2_image
-  pkg_search_module(SDL2_IMAGE REQUIRED SDL2_image)
 endif()
 
 if (SA2_OPENGL)
@@ -141,10 +139,10 @@ target_compile_definitions(sa2 PRIVATE
 )
 
 if (MSVC)
-  target_compile_definitions(sa2 PRIVATE 
+  target_compile_definitions(sa2 PRIVATE
     NOMINMAX            # to avoid conflicts with std::min/max
     DISABLE_SPEECH_API  # undefine because the original AppleWin speech API is not supported here
-  ) 
+  )
 endif()
 
 install(TARGETS sa2

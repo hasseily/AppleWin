@@ -33,12 +33,8 @@ add_library(common2 STATIC
   ${HEADER_FILES}
   )
 
-find_package(Boost REQUIRED COMPONENTS program_options)
-target_link_libraries(common2 PRIVATE Boost::program_options)
-
 target_include_directories(common2 PRIVATE
   ${CMAKE_CURRENT_BINARY_DIR}
-  ${Boost_INCLUDE_DIRS}
   )
 
 target_link_libraries(common2 PRIVATE
