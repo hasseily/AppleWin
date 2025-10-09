@@ -10,6 +10,11 @@ set_source_files_properties(${APP_ICON}
 	PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
 target_sources(sa2 PRIVATE ${APP_ICON})
 
+set_target_properties(sa2 PROPERTIES
+  MACOSX_BUNDLE TRUE
+  MACOSX_BUNDLE_ICON_FILE "AppIcon.icns"
+)
+
 set(IMGUI_PATH "imgui/imgui")
 set(IMGUI_CLUB_PATH "imgui/imgui_club")
 
