@@ -32,6 +32,20 @@ target_include_directories(pp
 
 target_compile_features(pp PUBLIC cxx_std_20)
 
+if ((${CMAKE_SYSTEM_NAME} MATCHES "Darwin") OR (${CMAKE_SYSTEM_NAME} MATCHES "Windows"))
+  # only OpenGL supported on MacOS and Windows
+  set (PP_OPENGL ON)
+else()
+  option(PP_OPENGL "Prefer OpenGL over OpenGL ES" OFF)
+endif()
+
+if (PP_OPENGL)
+  find_package(OpenGL REQUIRED)
+else()
+  pkg_search_module(GLES2 REQUIRED glesv2)
+  target_compile_definitions(pp PRIVATE IMGUI_IMPL_OPENGL_ES2)
+endif()
+
 target_link_libraries(pp
   PUBLIC
 	${SDL2_LIBRARIES}

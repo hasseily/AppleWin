@@ -19,8 +19,7 @@ set(IMGUI_PATH "imgui/imgui")
 set(IMGUI_CLUB_PATH "imgui/imgui_club")
 
 find_package(SDL2 REQUIRED)
-# we should use find_package, but Ubuntu does not provide it for SDL2_image
-pkg_search_module(SDL2_IMAGE REQUIRED SDL2_image)
+find_package(SDL2_IMAGE REQUIRED)
 
 target_compile_features(common2 PUBLIC cxx_std_20)
 
@@ -61,8 +60,6 @@ set(HEADER_FILES
 
 
 target_include_directories(sa2 PRIVATE
-  ${SDL2_INCLUDE_DIRS}
-  ${SDL2_IMAGE_INCLUDE_DIRS}
   ${GLES2_INCLUDE_DIRS}
   )
 
@@ -76,8 +73,9 @@ target_link_libraries(sa2 PRIVATE
   ${SLIRP_LIBRARIES}
   ${ZLIB_LIBRARIES}
 
-  ${SDL2_LIBRARIES}
-  ${SDL2_IMAGE_LIBRARIES}
+  SDL2::SDL2
+  SDL2::SDL2main
+  SDL2_image::SDL2_image
   ${GLES2_LIBRARIES}
   OpenGL::GL
   )
@@ -89,8 +87,6 @@ if (NOT WIN32)
 endif()
 
 target_link_directories(sa2 PRIVATE
-  ${SDL2_LIBRARY_DIRS}
-  ${SDL2_IMAGE_LIBRARY_DIRS}
   ${GLES2_LIBRARY_DIRS}
   )
 
@@ -143,10 +139,10 @@ target_compile_definitions(sa2 PRIVATE
 )
 
 if (MSVC)
-  target_compile_definitions(sa2 PRIVATE 
+  target_compile_definitions(sa2 PRIVATE
     NOMINMAX            # to avoid conflicts with std::min/max
     DISABLE_SPEECH_API  # undefine because the original AppleWin speech API is not supported here
-  ) 
+  )
 endif()
 
 install(TARGETS sa2
