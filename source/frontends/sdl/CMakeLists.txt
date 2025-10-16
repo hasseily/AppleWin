@@ -10,9 +10,13 @@ set_source_files_properties(${APP_ICON}
 	PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
 target_sources(sa2 PRIVATE ${APP_ICON})
 
+set(CMAKE_INSTALL_RPATH "@executable_path/../Frameworks;@loader_path/../Frameworks")
+
 set_target_properties(sa2 PROPERTIES
   MACOSX_BUNDLE TRUE
   MACOSX_BUNDLE_ICON_FILE "AppIcon.icns"
+  INSTALL_RPATH_USE_LINK_PATH ON
+  BUILD_WITH_INSTALL_RPATH ON
 )
 
 set(IMGUI_PATH "imgui/imgui")
@@ -145,16 +149,44 @@ if (MSVC)
   )
 endif()
 
-install(TARGETS sa2
-  RUNTIME_DEPENDENCIES
-    PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-"    # skip Windows system DLLs
-    POST_EXCLUDE_REGEXES ".*system32/.*"       # skip more system DLLs
-  FRAMEWORK DESTINATION Frameworks
-  BUNDLE DESTINATION bin
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION bin
-  ARCHIVE DESTINATION lib
-)
+if(APPLE)
+  install(TARGETS sa2
+    RUNTIME_DEPENDENCY_SET sa2_deps
+    BUNDLE DESTINATION .  # install in prefix root
+  )
+  # Secondary rule that puts the dylibs inside the bundle
+  install(
+    RUNTIME_DEPENDENCY_SET sa2_deps
+    FRAMEWORK DESTINATION "$<TARGET_BUNDLE_CONTENT_DIR:sa2>/Frameworks"
+    LIBRARY   DESTINATION "$<TARGET_BUNDLE_CONTENT_DIR:sa2>/Frameworks"
+  )
+else()
+  # Normal non-bundle platforms
+  install(TARGETS sa2
+    RUNTIME_DEPENDENCIES
+      PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-"    # skip Windows system DLLs
+      POST_EXCLUDE_REGEXES ".*system32/.*"       # skip more system DLLs
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+  )
+endif()
+
+if(APPLE)
+  # fix up the links to the libs in the bundle
+  install(CODE "
+    message(STATUS \"Fixing up bundle for macOS...\")
+    include(BundleUtilities)
+	set(prefix \"\${CMAKE_INSTALL_PREFIX}\")
+    get_filename_component(prefix \"\${prefix}\" REALPATH)
+    set(app \"\${prefix}/sa2.app\")
+    fixup_bundle(
+      \"\${app}\"
+      \"\"
+      \"\${CMAKE_INSTALL_PREFIX}\"
+    )
+  ")
+endif()
 
 # ==== PostProcessing ====
 add_subdirectory(pp)

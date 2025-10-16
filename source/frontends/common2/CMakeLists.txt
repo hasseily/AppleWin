@@ -35,6 +35,7 @@ add_library(common2 STATIC
 
 target_include_directories(common2 PRIVATE
   ${CMAKE_CURRENT_BINARY_DIR}
+  ${Boost_INCLUDE_DIRS}
   )
 
 target_link_libraries(common2 PRIVATE
