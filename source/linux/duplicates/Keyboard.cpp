@@ -6,23 +6,35 @@
 
 #include <queue>
 
+// number of accesses of current key before it's forcibly removed from the queue
+// when a new keystroke comes in. Technically on a non-GS Apple II, a new key replaces
+// the old in the latch. But this would not allow pasting in text.
+#define LATCH_RESET_AFTER_ACCESS_COUNT 5
+
 namespace
 {
     std::queue<BYTE> keys;
     bool g_bCapsLock = true; // Caps lock key for Apple2 and Lat/Cyr lock for Pravets8
     BYTE keycode = 0;
+	BYTE latchAccesses = 0;	 // Number of accesses of the latch to read the current key
 
     void setKeyCode()
     {
         if (!keys.empty())
         {
             keycode = keys.front();
+			++latchAccesses;
         }
     }
 } // namespace
 
 void addKeyToBuffer(BYTE key)
 {
+	if (latchAccesses >= LATCH_RESET_AFTER_ACCESS_COUNT)
+	{
+		keys.pop();
+		latchAccesses = 0;
+	}
     keys.push(key);
 }
 
@@ -146,6 +158,7 @@ BYTE KeybClearStrobe(void)
     {
         const BYTE result = keys.front();
         keys.pop();
+		latchAccesses = 0;
         return result | 0x80;
     }
 }
