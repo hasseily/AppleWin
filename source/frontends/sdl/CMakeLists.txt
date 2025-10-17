@@ -23,7 +23,7 @@ set(IMGUI_PATH "imgui/imgui")
 set(IMGUI_CLUB_PATH "imgui/imgui_club")
 
 find_package(SDL2 REQUIRED)
-find_package(SDL2_IMAGE REQUIRED)
+find_package(SDL2_image REQUIRED)
 
 target_compile_features(common2 PUBLIC cxx_std_20)
 
@@ -92,6 +92,7 @@ endif()
 
 target_link_directories(sa2 PRIVATE
   ${GLES2_LIBRARY_DIRS}
+  ${SDL2_IMAGE_LIBRARY_DIRS}
   )
 
 target_sources(sa2 PRIVATE

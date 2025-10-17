@@ -70,3 +70,7 @@ if ("${ROOT_PATH}" STREQUAL "")
 endif()
 
 configure_file(common_config.h.in common_config.h)
+
+# ---- Needs Boost::PropertyTree
+find_package(Boost REQUIRED)
+target_link_libraries(common2 PRIVATE Boost::boost)
