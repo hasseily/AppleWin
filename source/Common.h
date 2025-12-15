@@ -28,7 +28,7 @@ enum AppMode_e
 
 #define  SPEED_MIN         0
 #define  SPEED_NORMAL      10
-#define  SPEED_MAX         40
+#define  SPEED_MAX         100
 
 #define  DRAW_BACKGROUND    (1 << 0)
 #define  DRAW_LEDS          (1 << 1)

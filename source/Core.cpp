@@ -212,8 +212,8 @@ void SetCurrentCLK6502(void)
 	// SPEED_MIN    =  0 = 0.50 MHz
 	// SPEED_NORMAL = 10 = 1.00 MHz
 	//                20 = 2.00 MHz
-	// SPEED_MAX-1  = 39 = 3.90 MHz
-	// SPEED_MAX    = 40 = ???? MHz (run full-speed, /g_fCurrentCLK6502/ is ignored)
+	// SPEED_MAX-1  = 99 = 3.90 MHz
+	// SPEED_MAX    = 100 = ???? MHz (run full-speed, /g_fCurrentCLK6502/ is ignored)
 
 	if(g_dwSpeed < SPEED_NORMAL)
 		g_fMHz = 0.5 + (double)g_dwSpeed * 0.05;

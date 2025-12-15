@@ -1004,6 +1004,8 @@ namespace sa2
 				if (ImGui::MenuItem("1 MHz", nullptr, g_dwSpeed == SPEED_NORMAL)) { setSpeedMultiplier(frame, SPEED_NORMAL); }
 				if (ImGui::MenuItem("2 MHz", nullptr, g_dwSpeed == SPEED_NORMAL * 2)) { setSpeedMultiplier(frame, SPEED_NORMAL * 2); }
 				if (ImGui::MenuItem("3 MHz", nullptr, g_dwSpeed == SPEED_NORMAL * 3)) { setSpeedMultiplier(frame, SPEED_NORMAL * 3); }
+				if (ImGui::MenuItem("4 MHz", nullptr, g_dwSpeed == SPEED_NORMAL * 4)) { setSpeedMultiplier(frame, SPEED_NORMAL * 4); }
+				if (ImGui::MenuItem("5 MHz", nullptr, g_dwSpeed == SPEED_NORMAL * 5)) { setSpeedMultiplier(frame, SPEED_NORMAL * 5); }
 				if (ImGui::MenuItem("MAX", nullptr, g_dwSpeed == SPEED_MAX)) { setSpeedMultiplier(frame, SPEED_MAX); }
 
 				ImGui::EndMenu();
