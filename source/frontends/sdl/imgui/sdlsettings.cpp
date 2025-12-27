@@ -871,6 +871,9 @@ namespace sa2
 
             ImGui::SeparatorText("Gamepad");
             ImGui::TextUnformatted("Press the Gamepad BACK button twice to quit.");
+            ImGui::SeparatorText("Speed Shortcuts");
+            ImGui::TextUnformatted("Press PgUp to increase speed in 1MHz increments.");
+            ImGui::TextUnformatted("Press PgDn to reset speed to 1MHz.");
         }
         ImGui::End();
     }

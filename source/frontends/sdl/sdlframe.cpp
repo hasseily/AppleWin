@@ -494,6 +494,20 @@ namespace sa2
                 }
                 break;
             }
+            case SDLK_PAGEUP:
+            {
+                g_dwSpeed += SPEED_NORMAL;
+                SetCurrentCLK6502();
+                ResetSpeed();
+                break;
+            }
+            case SDLK_PAGEDOWN:
+            {
+                g_dwSpeed = SPEED_NORMAL;
+                SetCurrentCLK6502();
+                ResetSpeed();
+                break;
+            }
             case SDLK_F2:
             {
                 if (modifiers == KMOD_CTRL)
